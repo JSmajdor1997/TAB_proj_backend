@@ -2,22 +2,25 @@
   "name": "tab",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "migrate": "drizzle-kit generate --name=migration.sql",
     "test": "npx jest --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/pg": "^8.11.6",
+    "@electric-sql/pglite": "^0.1.5",
     "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.21.4",
     "drizzle-orm": "^0.30.10",
     "express": "^4.19.2",
-    "pg": "^8.11.5"
+    "postgres": "^3.4.4"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
@@ -25,9 +28,9 @@
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.12",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.0",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
+    "tsx": "^4.11.0",
     "typescript": "^5.4.5"
   }
 }
