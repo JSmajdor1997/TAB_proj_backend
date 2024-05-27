@@ -10,6 +10,8 @@ export interface Environment {
     NODE_ENV: "development" | "production"
 
     MIGRATION_CATALOG: string
+
+    SECRET_ACCESS_TOKEN: string
 }
 
 export default function getEnv(): Environment {

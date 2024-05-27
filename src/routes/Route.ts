@@ -2,9 +2,8 @@ import { Request, Response } from "express";
 import Logger from "../Logger/Logger";
 import DB from "../DB/DB";
 
-export enum AuthType {
+export enum AuthLevel {
     Librarian,
-    Student,
     None
 }
 
@@ -25,7 +24,7 @@ export type Handler = (req: Request, res: Response, db: DB, logger: Logger["log"
 export default class Route {
     constructor(
         public readonly method: Method,
-        public readonly authType: AuthType,
+        public readonly authType: AuthLevel,
         public readonly basePath: string,
         public readonly handler: Handler
     ) { }
