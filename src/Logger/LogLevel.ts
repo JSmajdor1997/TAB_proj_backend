@@ -1,6 +1,9 @@
 enum LogLevel {
     Info,
-    Error
+    Success,
+    Error,
+    Warning,
+    CriticalError
 }
 
 export default LogLevel

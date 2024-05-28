@@ -5,7 +5,7 @@ import path from 'path';
 const env = getEnv()
 
 export default defineConfig({
-    schema: './src/API/schema/*',
+    schema: './src/DB/schema/*',
     out: path.join("./", env.MIGRATION_CATALOG),
     dialect: 'postgresql',
     dbCredentials: {
