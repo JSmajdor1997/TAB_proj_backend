@@ -10,7 +10,7 @@ enum SettingPasswordError {
 
 enum LoginError {
     UserAlreadyLoggedIn = 0,
-    UserDoesNotExistOrInvalidPassword=1
+    UserDoesNotExistOrInvalidPassword = 1
 }
 
 export const User_ResetPassword_Route = createRoute("/user/reset-password", {
@@ -22,7 +22,10 @@ export const User_ResetPassword_Route = createRoute("/user/reset-password", {
     querySchema: undefined,
     async handler({ params: { email }, api, user }) {
         console.log(user)
-        throw new Error("ToDo")
+        // throw new Error("ToDo")
+        return {
+            data: "ToDo!"
+        }
     },
 })
 
@@ -36,7 +39,7 @@ export const User_ChangePassword_Route = createRoute("/user/change-password", {
     querySchema: undefined,
     async handler({ params: { oldPassword, newPassword }, api, user }) {
         //jeśli hasło - tylko jeśli to my
-        if(await api.getLibrarian({email: user.user.email, password: oldPassword}) == null) {
+        if (await api.getLibrarian({ email: user.user.email, password: oldPassword }) == null) {
             return {
                 error: {
                     code: StatusCode.ClientErrorBadRequest,
@@ -47,7 +50,7 @@ export const User_ChangePassword_Route = createRoute("/user/change-password", {
         }
 
         await api.setPassword(user.user, newPassword)
-        
+
         return {
             data: "OK"
         }
@@ -59,7 +62,8 @@ export const User_Login_Route = createRoute("/user/login", {
     authLevel: AuthLevel.None,
     bodySchema: z.object({
         email: z.string().email(),
-        password: z.string()
+        password: z.string(),
+        userType: z.union([z.literal(AuthLevel.Student), z.literal(AuthLevel.Librarian)]),
     }),
     querySchema: undefined,
     async handler({ params, user }) {
@@ -72,7 +76,7 @@ export const User_Login_Route = createRoute("/user/login", {
                 }
             }
         } else {
-            const result = await user.login(params.email, params.password)
+            const result = await user.login(params.userType, params.email, params.password)
             if (result == null) {
                 return {
                     error: {

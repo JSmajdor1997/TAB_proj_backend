@@ -12,6 +12,9 @@ export interface Environment {
     MIGRATION_CATALOG: string
 
     SECRET_ACCESS_TOKEN: string
+
+    HTTPS_CERT: string
+    HTTPS_KEY: string
 }
 
 export default function getEnv(): Environment {

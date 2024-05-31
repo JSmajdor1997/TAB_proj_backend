@@ -18,6 +18,7 @@ import { User_ResetPassword_Route, User_ChangePassword_Route, User_Login_Route, 
 import StatusCode from "./utils/StatusCode";
 import fs from "fs"
 import https from "https"
+import { Server } from "socket.io";
 
 dotenv.config();
 
@@ -79,31 +80,11 @@ async function main() {
 
     logger.log(LogLevel.Success, "Paths registered successfully")
 
-    app.get("/sraka", (req, res) => {
-        console.log(req.cookies)
-        console.log(req.signedCookies)
-        res.cookie("myka", "bykja", {
-            httpOnly: true,
-            secure: true
-        })
-        res.send("siema")
-    })
-
     if (env.NODE_ENV == "development") {
-        app.get("/*", (req, res) => {
-            const response = `Attempted to request non-existent path, valid paths (more info in documentation): ${routes.map(route => route.path).join(", ")}`
-            logger.log(LogLevel.Error, response)
-
-            res.status(StatusCode.ClientErrorBadRequest).json({
-                error: {
-                    customCode: -1,
-                    message: response
-                }
-            })
-        })
-
-        app.post("/*", (req, res) => {
-            const response = `Attempted to request non-existent path, valid paths (more info in documentation): ${routes.map(route => route.path).join(", ")}`
+        app.use("/*", (req: Request, res: Response) => {
+            const response = `Attempted to request non-existent path, valid paths (more info in documentation): 
+                ${routes.map(route => route.path).join(",")} 
+                ABORTING!`
             logger.log(LogLevel.Error, response)
 
             res.status(StatusCode.ClientErrorBadRequest).json({
@@ -115,8 +96,8 @@ async function main() {
         })
     }
 
-    const key = fs.readFileSync("https/key.pem")
-    const cert = fs.readFileSync("https/cert.pem")
+    const key = fs.readFileSync(env.HTTPS_KEY)
+    const cert = fs.readFileSync(env.HTTPS_CERT)
     const server = https.createServer({key: key, cert: cert }, app);
 
     server.listen(env.PORT, () => {
