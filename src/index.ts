@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from "express";
+import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import getMockupDB from "./DB/getMockupDB";
 import getProductionDB from "./DB/getProductionDB";
@@ -9,20 +9,23 @@ import DB from "./DB/DB";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import API from "./API/API";
-import { BookItems_Lend_Route, BookItems_Return_Route } from "./routes/book-items";
-import { Messages_Get_Route, Messages_Send_Route } from "./routes/messages";
 import { Method } from "./routes/createRoute/Method";
-import { ObjectActionCrud_Path } from "./routes/object-action-crud";
 import { Reports_Download_Route, Reports_GetAllGenerated_Route, Reports_RequestCreation_Route } from "./routes/reports";
-import { User_ResetPassword_Route, User_ChangePassword_Route, User_Login_Route, User_Logout_Route } from "./routes/user";
+import { User_ResetPassword_Route, User_ChangePassword_Route, User_Login_Route, User_Logout_Route, User_CurrentUser_Route } from "./routes/user";
 import StatusCode from "./utils/StatusCode";
 import fs from "fs"
 import https from "https"
-import { Server } from "socket.io";
+import { Books_CancelReservation_Route, Books_Lend_Route, Books_Reserve_Route, Books_Return_Route } from "./routes/books";
+import { CreateOneAction_Path, DeleteOneAction_Path, UpdateOneAction_Path, GetManyAction_Path, GetOneAction_Path } from "./routes/crud";
+import { Messages_SendMessage_Route, Messages_GetMessages_Route } from "./routes/messages";
+import testFrontend from "./testFrontEnd";
 
 dotenv.config();
 
 async function main() {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+
     const logger = new Logger(["server"])
 
     logger.log(LogLevel.Info, "console test")
@@ -30,10 +33,8 @@ async function main() {
     logger.log(LogLevel.Warning, "console test")
     logger.log(LogLevel.Error, "console test")
     logger.log(LogLevel.CriticalError, "console test")
-    
 
     logger.log(LogLevel.Info, "server starting...")
-
 
     const env = getEnv()
 
@@ -53,11 +54,19 @@ async function main() {
     logger.log(LogLevel.Info, "starting registering paths")
 
     const routes = [
-        BookItems_Lend_Route,
-        BookItems_Return_Route,
+        Books_CancelReservation_Route,
+        Books_Lend_Route,
+        Books_Reserve_Route,
+        Books_Return_Route,
 
-        Messages_Send_Route,
-        Messages_Get_Route,
+        CreateOneAction_Path,
+        DeleteOneAction_Path,
+        UpdateOneAction_Path,
+        GetManyAction_Path,
+        GetOneAction_Path,
+
+        Messages_SendMessage_Route,
+        Messages_GetMessages_Route,
 
         Reports_Download_Route,
         Reports_GetAllGenerated_Route,
@@ -67,8 +76,7 @@ async function main() {
         User_ChangePassword_Route,
         User_Login_Route,
         User_Logout_Route,
-
-        ObjectActionCrud_Path
+        User_CurrentUser_Route
     ]
 
     for (const route of routes) {
@@ -82,7 +90,7 @@ async function main() {
 
     if (env.NODE_ENV == "development") {
         app.use("/*", (req: Request, res: Response) => {
-            const response = `Attempted to request non-existent path, valid paths (more info in documentation): 
+            const response = `Attempted to request non-existent path (${req.originalUrl}), valid paths (more info in documentation): 
                 ${routes.map(route => route.path).join(",")} 
                 ABORTING!`
             logger.log(LogLevel.Error, response)
@@ -98,11 +106,13 @@ async function main() {
 
     const key = fs.readFileSync(env.HTTPS_KEY)
     const cert = fs.readFileSync(env.HTTPS_CERT)
-    const server = https.createServer({key: key, cert: cert }, app);
+    const server = https.createServer({ key: key, cert: cert }, app);
 
     server.listen(env.PORT, () => {
         console.clear()
         logger.log(LogLevel.Success, `fully initialized, listens on port ${env.PORT}`)
+
+        testFrontend()
     });
 }
 

@@ -10,7 +10,7 @@ export const ReservationsTable = pgTable("reservations", {
     bookId: integer("book_id").references(() => BooksTable.id).notNull(),
     date: date("date", { mode: "date" }).notNull(),
     studentId: integer("student_id").references(() => StudentsTable.id).notNull(),
-    status: ReservationStatusEnums("status").notNull()
+    status: ReservationStatusEnums("status").notNull().default("active")
 })
 
 export enum ReservationStatus {

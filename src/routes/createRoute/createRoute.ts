@@ -160,7 +160,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                         secure: true,
                                     })
 
-                                    pathHandlerLogger.log(LogLevel.Success, `Valid auth provided | loggen in`)
+                                    pathHandlerLogger.log(LogLevel.Success, `Valid auth provided | logged in`)
 
                                     return user
                                 }) as any
@@ -199,7 +199,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                     })
 
                     if (result.data != null) {
-                        res.status(StatusCode.SuccessOK).json(result.data)
+                        res.status(StatusCode.SuccessOK).json(await result.data)
                     } else {
                         res.status(result.error?.code as number).send({
                             message: result.error?.message,

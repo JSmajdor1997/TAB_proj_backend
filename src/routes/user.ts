@@ -13,6 +13,21 @@ enum LoginError {
     UserDoesNotExistOrInvalidPassword = 1
 }
 
+export const User_CurrentUser_Route = createRoute("/user/current-user", {
+    method: Method.POST,
+    authLevel: AuthLevel.AnyAuthorized,
+    bodySchema: undefined,
+    querySchema: undefined,
+    async handler({ api, user }) {
+        return {
+            data: {
+                id: user.user.id,
+                userType: user.user.userType
+            }
+        }
+    },
+})
+
 export const User_ResetPassword_Route = createRoute("/user/reset-password", {
     method: Method.POST,
     authLevel: AuthLevel.None,
