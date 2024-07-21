@@ -7,12 +7,28 @@ import { UpdateOneType } from "../API/params/UpdateOne"
 import { AuthLevel } from "./createRoute/AuthLevel"
 import { Method } from "./createRoute/Method"
 import createRoute from "./createRoute/createRoute"
+import { createInsertSchema } from "drizzle-zod"
+import { AuthorsTable } from "../DB/schema/AuthorsTable"
+import { BookItemsTable } from "../DB/schema/BookItemsTable"
+import { BooksTable } from "../DB/schema/BooksTable"
+import { GenresTable } from "../DB/schema/GenresTable"
+import { LanguagesTable } from "../DB/schema/LanguagesTable"
+import { LibrariansTable } from "../DB/schema/LibrariansTable"
+import { LocationsTable } from "../DB/schema/LocationsTable"
 
 export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", {
     method: Method.POST,
     authLevel: AuthLevel.Librarian,
     bodySchema: z.object({
-        item: z.any()
+        item: z.union([
+            createInsertSchema(AuthorsTable),
+            createInsertSchema(LocationsTable),
+            createInsertSchema(LibrariansTable),
+            createInsertSchema(LanguagesTable),
+            createInsertSchema(GenresTable),
+            createInsertSchema(BookItemsTable),
+            createInsertSchema(BooksTable),
+        ])
     }),
     querySchema: undefined,
     handler: async ({ api, pathsParams, params: { item } }) => {

@@ -13,6 +13,7 @@ import LogLevel from "../../Logger/LogLevel";
 import StatusCode from "../../utils/StatusCode";
 import { Student } from "../../DB/schema/StudentsTable";
 import isLibrarian from "../../DB/type_guards/isLibrarian";
+import JSONHelpers from "../../utils/JSONHelpers";
 
 export type HandlerResponse<DataType, CustomErrorType> = {
     error: {
@@ -199,7 +200,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                     })
 
                     if (result.data != null) {
-                        res.status(StatusCode.SuccessOK).json(await result.data)
+                        res.status(StatusCode.SuccessOK).send(JSON.stringify(await result.data, JSONHelpers.stringify))
                     } else {
                         res.status(result.error?.code as number).send({
                             message: result.error?.message,

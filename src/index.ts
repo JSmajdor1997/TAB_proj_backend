@@ -19,6 +19,7 @@ import { Books_CancelReservation_Route, Books_Lend_Route, Books_Reserve_Route, B
 import { CreateOneAction_Path, DeleteOneAction_Path, UpdateOneAction_Path, GetManyAction_Path, GetOneAction_Path } from "./routes/crud";
 import { Messages_SendMessage_Route, Messages_GetMessages_Route } from "./routes/messages";
 import testFrontend from "./testFrontEnd";
+import JSONHelpers from "./utils/JSONHelpers";
 
 dotenv.config();
 
@@ -47,7 +48,7 @@ async function main() {
     app.use(cors())
     app.use(cookieParser());
     app.use(express.urlencoded({ extended: false }));
-    app.use(express.json());
+    app.use(express.json({reviver: JSONHelpers.parse}));
 
     const api = new API(db, logger.getSubLogger("API"))
 

@@ -11,18 +11,26 @@ import { DeleteOneType } from "./params/DeleteOne";
 import { UpdateOneType, UpdateQuery } from "./params/UpdateOne";
 import { GetOneType } from "./params/GetOne";
 import { GetManyQuery, GetManyType } from "./params/GetMany";
-import { BorrowingsTable } from "../DB/schema/BorrowingsTable";
-import { ReservationsTable } from "../DB/schema/ReservationsTable";
+import { Borrowing, BorrowingsTable } from "../DB/schema/BorrowingsTable";
+import { Reservation, ReservationsTable } from "../DB/schema/ReservationsTable";
 import { equal } from "assert";
-import { BookItemsTable } from "../DB/schema/BookItemsTable";
-import { MessagesTable } from "../DB/schema/MessagesTable";
+import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
+import { Message, MessagesTable } from "../DB/schema/MessagesTable";
 import { AuthorsBooksTable } from "../DB/schema/AuthorsBooksTable";
-import { AuthorsTable } from "../DB/schema/AuthorsTable";
+import { Author, AuthorsTable } from "../DB/schema/AuthorsTable";
 import { LocationsTable } from "../DB/schema/LocationsTable";
-import { LanguagesTable } from "../DB/schema/LanguagesTable";
-import { GenresTable } from "../DB/schema/GenresTable";
-import { BooksTable } from "../DB/schema/BooksTable";
-import { FeesTable } from "../DB/schema/FeesTable";
+import { Language, LanguagesTable } from "../DB/schema/LanguagesTable";
+import { Genre, GenresTable } from "../DB/schema/GenresTable";
+import { Book, BooksTable } from "../DB/schema/BooksTable";
+import { Fee, FeesTable } from "../DB/schema/FeesTable";
+
+export type APIResponse<DataType> = {
+    data: DataType
+    error?: unknown
+} | {
+    data?: unknown
+    error: string
+}
 
 //abstracts away DB operations
 export default class API {
@@ -152,30 +160,40 @@ export default class API {
         throw new Error("ToDo!")
     }
 
-    readonly returnBookItem = async (bookItemId: number, fee: number) => {
+    readonly returnBookItem = async (bookItemId: number, fee: number): Promise<APIResponse<{}>> => {
         //sprawdź czy w ogóle jest do zwrotu
         const borrowingItem = await this.db.select().from(BorrowingsTable).where(and(eq(BorrowingsTable.bookItemEan, bookItemId), isNull(BorrowingsTable.returnDate)))
 
         if (borrowingItem.length != 1) {
-            return "Ksiązką jest już zwrócona"
+            return {
+                error: "Book is already returned"
+            }
         }
 
         await this.db.update(BorrowingsTable).set({ returnDate: new Date(), paidFee: fee }).where(eq(BorrowingsTable.id, bookItemId))
 
-        return true
+        return {
+            data: {}
+        }
     }
 
-    readonly reserveBook = async (studentId: number, bookId: number) => {
+    readonly reserveBook = async (studentId: number, bookId: number): Promise<APIResponse<{ reservationId: number }>> => {
         const result = await this.db.insert(ReservationsTable).values({ bookId, date: new Date(), studentId }).returning()
 
-        return result[0].id
+        return {
+            data: {
+                reservationId: result[0].id
+            }
+        }
     }
 
-    readonly cancelReservation = async (reservationId: number) => {
+    readonly cancelReservation = async (reservationId: number): Promise<APIResponse<{}>> => {
         await this.db.update(ReservationsTable).set({ status: "canceled" })
+
+        return { data: {} }
     }
 
-    readonly lendBook = async (librarianId: number, studentId: number, bookItemId: number) => {
+    readonly lendBook = async (librarianId: number, studentId: number, bookItemId: number): Promise<APIResponse<{ borrowingId: number }>> => {
         //sprawdź czy możesz (czy się )
         //dodaj nowe wypożyczenie
         //usuń rezerwację jeśli jest
@@ -183,7 +201,9 @@ export default class API {
         //checking if available
         const result = this.db.select().from(BorrowingsTable).where(and(eq(BorrowingsTable.bookItemEan, bookItemId), not(isNull(BorrowingsTable.returnDate))))
         if (result != null) {
-            return "Książka jest już pożyczona"
+            return {
+                error: "Book is already returned"
+            }
         }
 
         const bookId = (await this.db.select({ bookId: BookItemsTable.bookId }).from(BookItemsTable).where(eq(BookItemsTable.ean, bookItemId)))[0].bookId
@@ -193,63 +213,94 @@ export default class API {
             await this.db.update(ReservationsTable).set({ status: "realized" }).where(eq(ReservationsTable.id, reservation[0].id))
         }
 
-        await this.db.insert(BorrowingsTable).values({
+        const borrowing = await this.db.insert(BorrowingsTable).values({
             studentId,
             bookItemEan: bookItemId,
             librarianId,
             borrowingDate: new Date(),
-        })
+        }).returning()
 
-        return true
+        return {
+            data: {
+                borrowingId: borrowing[0].id
+            }
+        }
     }
 
-    readonly getMessages = async (studentId: number, range: [number, number]) => {
-        return await this.db.select()
-            .from(MessagesTable)
-            .where(and(eq(MessagesTable.studentId, studentId)))
-            .orderBy(desc(MessagesTable.date))
-            .limit(range[1] - range[0])
-            .offset(range[0])
+    readonly getMessages = async (studentId: number, range: [number, number]): Promise<APIResponse<Message[]>> => {
+        return {
+            data: await this.db.select()
+                .from(MessagesTable)
+                .where(and(eq(MessagesTable.studentId, studentId)))
+                .orderBy(desc(MessagesTable.date))
+                .limit(range[1] - range[0])
+                .offset(range[0])
+        }
     }
 
-    readonly sendMessage = async (studentId: number, content: string, fromLibrarian: boolean) => {
+    readonly sendMessage = async (studentId: number, content: string, fromLibrarian: boolean): Promise<APIResponse<{}>> => {
         await this.db.insert(MessagesTable).values({
             date: new Date(),
             content,
             isFromLibrarian: fromLibrarian,
             studentId,
         })
+
+        return {
+            data: {}
+        }
     }
 
-    readonly createOne = async <T extends CreateOneType>(type: T, obj: CreateQuery<T>) => {
+    readonly createOne = async <T extends CreateOneType>(type: T, obj: CreateQuery<T>): Promise<APIResponse<{ createdId: number }>> => {
         switch (type) {
             case CreateOneType.Author: {
-                await this.db.insert(AuthorsTable).values(obj as CreateQuery<CreateOneType.Author>)
-                break;
+                return this.db.insert(AuthorsTable).values(obj as CreateQuery<CreateOneType.Author>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
             }
             case CreateOneType.Book: {
-                await this.db.insert(BooksTable).values(obj as CreateQuery<CreateOneType.Book>)
-                break;
+                return this.db.insert(BooksTable).values(obj as CreateQuery<CreateOneType.Book>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
             }
             case CreateOneType.BookItem: {
-                await this.db.insert(BookItemsTable).values(obj as CreateQuery<CreateOneType.BookItem>)
-                break;
+                return this.db.insert(BookItemsTable).values(obj as CreateQuery<CreateOneType.BookItem>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].ean
+                    }
+                }))
             }
             case CreateOneType.Genre: {
-                await this.db.insert(GenresTable).values(obj as CreateQuery<CreateOneType.Genre>)
-                break;
+                return this.db.insert(GenresTable).values(obj as CreateQuery<CreateOneType.Genre>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
             }
             case CreateOneType.Language: {
-                await this.db.insert(LanguagesTable).values(obj as CreateQuery<CreateOneType.Language>)
-                break;
+                return this.db.insert(LanguagesTable).values(obj as CreateQuery<CreateOneType.Language>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
             }
             case CreateOneType.Librarian: {
-                await this.db.insert(LibrariansTable).values(obj as CreateQuery<CreateOneType.Librarian>)
-                break;
+                return this.db.insert(LibrariansTable).values(obj as CreateQuery<CreateOneType.Librarian>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
             }
             case CreateOneType.Location: {
-                await this.db.insert(LocationsTable).values(obj as CreateQuery<CreateOneType.Location>)
-                break;
+                return this.db.insert(LocationsTable).values(obj as CreateQuery<CreateOneType.Location>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
             }
             default: {
                 throw new Error("Invalid type");
@@ -257,7 +308,7 @@ export default class API {
         }
     }
 
-    readonly deleteOne = async <T extends DeleteOneType>(type: T, id: number) => {
+    readonly deleteOne = async <T extends DeleteOneType>(type: T, id: number): Promise<APIResponse<{}>> => {
         switch (type) {
             case DeleteOneType.Author: {
                 await this.db.delete(AuthorsTable).where(eq(AuthorsTable.id, id))
@@ -291,8 +342,12 @@ export default class API {
                 throw new Error("Invalid type");
             }
         }
+
+        return {
+            data: {}
+        }
     }
-    readonly updateOne = async <T extends UpdateOneType>(type: T, id: number, obj: UpdateQuery<T>) => {
+    readonly updateOne = async <T extends UpdateOneType>(type: T, id: number, obj: UpdateQuery<T>): Promise<APIResponse<{}>> => {
         switch (type) {
             case UpdateOneType.Author: {
                 await this.db.update(AuthorsTable).set(obj).where(eq(AuthorsTable.id, id))
@@ -326,8 +381,18 @@ export default class API {
                 throw new Error("Invalid type");
             }
         }
+
+        return {
+            data: {}
+        }
     }
-    readonly getOne = async <T extends GetOneType>(type: T, id: number) => {
+    readonly getOne = async <T extends GetOneType>(type: T, id: number): Promise<APIResponse<(
+        T extends GetOneType.Author ? Author :
+        T extends GetOneType.Genre ? Genre :
+        T extends GetOneType.Librarian ? Librarian :
+        T extends GetOneType.Student ? Student :
+        never
+    )>> => {
         let items: any[]
 
         switch (type) {
@@ -352,10 +417,24 @@ export default class API {
             }
         }
 
-        return items.length > 0 ? items[0] : null
+        return {
+            data: items.length > 0 ? items[0] : null
+        }
     }
 
-    readonly getMany = async <T extends GetManyType>(type: T, query: GetManyQuery<T>, range: [number, number]) => {
+    readonly getMany = async <T extends GetManyType>(type: T, query: GetManyQuery<T>, range: [number, number]): Promise<APIResponse<(
+        T extends GetManyType.Authors ? Author :
+        T extends GetManyType.BookItems ? BookItem :
+        T extends GetManyType.Books ? Book :
+        T extends GetManyType.Borrowings ? Borrowing :
+        T extends GetManyType.Fees ? Fee :
+        T extends GetManyType.Languages ? Language :
+        T extends GetManyType.Librarians ? Librarian :
+        T extends GetManyType.Locations ? Location :
+        T extends GetManyType.Reservations ? Reservation :
+        T extends GetManyType.Students ? Student :
+        never
+    )[]>> => {
         let sqlQuery: any;
         let countQuery: any;
 
@@ -489,6 +568,8 @@ export default class API {
             }
         }
 
-        return (await sqlQuery).map((it: any) => ({ ...it, password: undefined }))
+        return {
+            data: (await sqlQuery).map((it: any) => ({ ...it, password: undefined }))
+        }
     }
 }

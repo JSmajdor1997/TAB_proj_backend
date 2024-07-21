@@ -1,3 +1,11 @@
+import JSONHelpers from "../utils/JSONHelpers";
+import API from "./API";
+import { CreateOneType, CreateQuery } from "./params/CreateOne";
+import { DeleteOneType } from "./params/DeleteOne";
+import { GetManyQuery, GetManyType } from "./params/GetMany";
+import { GetOneType } from "./params/GetOne";
+import { UpdateOneType, UpdateQuery } from "./params/UpdateOne";
+
 export enum UserType {
     Librarian = 0,
     Student = 1,
@@ -11,7 +19,7 @@ export default class FrontEndAPI {
         this.ServerPath = path;
     }
 
-    private async apiCall(path: string, params: any) {
+    private async apiCall(path: string, params: any): Promise<{data: any, error: any}> {
         const response = await fetch(`${this.ServerPath}${path}`, {
             method: 'POST',
             headers: {
@@ -19,7 +27,7 @@ export default class FrontEndAPI {
                 'Content-Type': 'application/json',
                 'Cookie': this.cookie
             },
-            body: JSON.stringify(params),
+            body: JSON.stringify(params, JSONHelpers.stringify),
             credentials: 'include'
         });
 
@@ -29,23 +37,25 @@ export default class FrontEndAPI {
             this.cookie = setCookie;
         }
 
-        return response.json();
+        return response.text().then(it => {
+            return JSON.parse(it, JSONHelpers.parse)
+        });
     }
 
     // Account-related
-    async login(userType: UserType, email: string, password: string) {
+    async login(userType: UserType, email: string, password: string): Promise<{}> {
         return this.apiCall("/user/login", { email, password, userType });
     }
 
-    async logout() {
+    async logout(): Promise<{}> {
         return this.apiCall("/user/logout", {});
     }
 
-    async changePassword(oldPassword: string, newPassword: string) {
+    async changePassword(oldPassword: string, newPassword: string): Promise<{}> {
         return this.apiCall("/user/change-password", { oldPassword, newPassword });
     }
 
-    async resetPassword(email: string) {
+    async resetPassword(email: string): Promise<{}> {
         return this.apiCall("/user/reset-password", { email });
     }
 
@@ -53,19 +63,19 @@ export default class FrontEndAPI {
         return this.apiCall("/books/return", { bookItemId, fee });
     }
 
-    readonly reserveBook = async (studentId: number, bookId: number) => {
+    readonly reserveBook = async (studentId: number, bookId: number): ReturnType<API["reserveBook"]> => {
         return this.apiCall("/books/reserve", { studentId, bookId });
     }
 
-    readonly cancelReservation = async (reservationId: number) => {
+    readonly cancelReservation = async (reservationId: number): ReturnType<API["cancelReservation"]> => {
         return this.apiCall("/books/cancel-reservation", { reservationId });
     }
 
-    readonly lendBook = async (librarianId: number, studentId: number, bookItemId: number) => {
+    readonly lendBook = async (librarianId: number, studentId: number, bookItemId: number): ReturnType<API["lendBook"]> => {
         return this.apiCall("/books/lend", { librarianId, studentId, bookItemId });
     }
 
-    readonly getMessages = async (studentId: number, range: [number, number]) => {
+    readonly getMessages = async (studentId: number, range: [number, number]): ReturnType<API["getMessages"]> => {
         return this.apiCall("/messages/get", { studentId, range });
     }
 
@@ -73,24 +83,28 @@ export default class FrontEndAPI {
         return this.apiCall("/messages/send", { studentId, content });
     }
 
-    readonly createOne = async <T extends any>(type: T, obj: any) => {
+    readonly createOne = async <T extends CreateOneType>(type: T, obj: CreateQuery<T>) => {
         return this.apiCall(`/crud/${type}/create-one`, { item: obj });
     }
 
-    readonly deleteOne = async <T extends any>(type: T, id: number) => {
+    readonly deleteOne = async <T extends DeleteOneType>(type: T, id: number): ReturnType<API["deleteOne"]> => {
         return this.apiCall(`/crud/${type}/delete-one`, { id });
     }
 
-    readonly updateOne = async <T extends any>(type: T, id: number, obj: any) => {
+    readonly updateOne = async <T extends UpdateOneType>(type: T, id: number, obj: UpdateQuery<T>): ReturnType<API["updateOne"]> => {
         return this.apiCall(`/crud/${type}/update-one`, { id, item: obj });
     }
 
-    readonly getOne = async <T extends any>(type: T, id: number) => {
+    readonly getOne = async <T extends GetOneType>(type: T, id: number): ReturnType<API["getOne"]> => {
         return this.apiCall(`/crud/${type}/get-one`, { id });
     }
 
-    readonly getMany = async <T extends any>(type: T, query: any, range: [number, number]) => {
+    readonly getMany = async <T extends GetManyType>(type: T, query: GetManyQuery<T>, range: [number, number]): ReturnType<API["getMany"]> => {
         return this.apiCall(`/crud/${type}/get-many`, { query, range });
+    }
+
+    readonly getCurrentUser = async (): Promise<{ id: number, userType: UserType }> => {
+        return (await this.apiCall(`/user/current-user`, {})).data;
     }
 
     readonly downloadReport = async (reportId: number) => {
@@ -103,9 +117,5 @@ export default class FrontEndAPI {
 
     readonly requestReportGeneration = async (reportId: number) => {
         return this.apiCall(`/reports/request-creation`, { reportId });
-    }
-
-    readonly getCurrentUser = async (): Promise<{ id: number, userType: UserType }> => {
-        return this.apiCall(`/user/current-user`, {});
     }
 }
