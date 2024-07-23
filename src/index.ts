@@ -113,7 +113,7 @@ async function main() {
         console.clear()
         logger.log(LogLevel.Success, `fully initialized, listens on port ${env.PORT}`)
 
-        testFrontend()
+        // testFrontend()
     });
 }
 
