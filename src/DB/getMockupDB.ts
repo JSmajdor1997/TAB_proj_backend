@@ -14,7 +14,6 @@ import mockupGenres from './mockup_data/generators/mockupGenres';
 import mockupLanguages from './mockup_data/generators/mockupLanguages';
 import mockupLibrarians from './mockup_data/generators/mockupLibrarians';
 import mockupLocations from './mockup_data/generators/mockupLocations';
-import mockupMessages from './mockup_data/generators/mockupMessages';
 import mockupReservations from './mockup_data/generators/mockupReservations';
 import mockupStudents from './mockup_data/generators/mockupStudents';
 import { AuthorsBooksTable } from './schema/AuthorsBooksTable';
@@ -29,7 +28,6 @@ import { GenresTable } from './schema/GenresTable';
 import { LanguagesTable } from './schema/LanguagesTable';
 import { LibrariansTable } from './schema/LibrariansTable';
 import { LocationsTable } from './schema/LocationsTable';
-import { MessagesTable } from './schema/MessagesTable';
 import { ReservationsTable } from './schema/ReservationsTable';
 import { StudentsTable } from './schema/StudentsTable';
 
@@ -81,9 +79,6 @@ export default async function getMockupDB() {
 
     const authorsBooks = mockupAuthorsBooks(books, authors)
     await db.insert(AuthorsBooksTable).values(authorsBooks)
-
-    const messages = mockupMessages(students)
-    await db.insert(MessagesTable).values(messages)
 
     return db
 }

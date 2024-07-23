@@ -75,14 +75,6 @@ export default class FrontEndAPI {
         return this.apiCall("/books/lend", { librarianId, studentId, bookItemId });
     }
 
-    readonly getMessages = async (studentId: number, range: [number, number]): ReturnType<API["getMessages"]> => {
-        return this.apiCall("/messages/get", { studentId, range });
-    }
-
-    readonly sendMessage = async (studentId: number, content: string) => {
-        return this.apiCall("/messages/send", { studentId, content });
-    }
-
     readonly createOne = async <T extends CreateOneType>(type: T, obj: CreateQuery<T>) => {
         return this.apiCall(`/crud/${type}/create-one`, { item: obj });
     }

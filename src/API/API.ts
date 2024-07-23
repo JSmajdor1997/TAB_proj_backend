@@ -15,7 +15,6 @@ import { Borrowing, BorrowingsTable } from "../DB/schema/BorrowingsTable";
 import { Reservation, ReservationsTable } from "../DB/schema/ReservationsTable";
 import { equal } from "assert";
 import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
-import { Message, MessagesTable } from "../DB/schema/MessagesTable";
 import { AuthorsBooksTable } from "../DB/schema/AuthorsBooksTable";
 import { Author, AuthorsTable } from "../DB/schema/AuthorsTable";
 import { LocationsTable } from "../DB/schema/LocationsTable";
@@ -226,31 +225,7 @@ export default class API {
             }
         }
     }
-
-    readonly getMessages = async (studentId: number, range: [number, number]): Promise<APIResponse<Message[]>> => {
-        return {
-            data: await this.db.select()
-                .from(MessagesTable)
-                .where(and(eq(MessagesTable.studentId, studentId)))
-                .orderBy(desc(MessagesTable.date))
-                .limit(range[1] - range[0])
-                .offset(range[0])
-        }
-    }
-
-    readonly sendMessage = async (studentId: number, content: string, fromLibrarian: boolean): Promise<APIResponse<{}>> => {
-        await this.db.insert(MessagesTable).values({
-            date: new Date(),
-            content,
-            isFromLibrarian: fromLibrarian,
-            studentId,
-        })
-
-        return {
-            data: {}
-        }
-    }
-
+    
     readonly createOne = async <T extends CreateOneType>(type: T, obj: CreateQuery<T>): Promise<APIResponse<{ createdId: number }>> => {
         switch (type) {
             case CreateOneType.Author: {
