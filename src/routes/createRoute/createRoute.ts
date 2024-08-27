@@ -58,6 +58,7 @@ export type CreateRouteArgument<Path extends string, AuthLevelType extends AuthL
 async function getLoggedInUser(req: Request, secretAccessToken: string, api: API): Promise<Librarian | Student | null> {
     return new Promise<Librarian | null>(async (resolve) => {
         const accessToken = req.cookies?.jwt as string | undefined;
+
         if (accessToken == null) {
             resolve(null)
             return
@@ -159,6 +160,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                         maxAge: Period.Day, // would expire in 24hours
                                         // httpOnly: true, // The cookie is only accessible by the web server
                                         secure: true,
+                                        sameSite: "none"
                                     })
 
                                     pathHandlerLogger.log(LogLevel.Success, `Valid auth provided | logged in`)
@@ -182,7 +184,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                         return false
                                     }
 
-                                    res.cookie('jwt', '', { maxAge: 1 })
+                                    res.cookie('jwt', '', { maxAge: 1, sameSite: "none" })
 
                                     pathHandlerLogger.log(LogLevel.Success, `Logout successful`)
 
@@ -200,6 +202,8 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                     })
 
                     if (result.data != null) {
+                        res.set("Access-Control-Expose-Headers","Authorization")
+
                         res.status(StatusCode.SuccessOK).send(JSON.stringify(await result.data, JSONHelpers.stringify))
                     } else {
                         res.status(result.error?.code as number).send({
