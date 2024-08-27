@@ -44,10 +44,10 @@ async function main() {
 
     const app = express();
     app.disable("x-powered-by");
-    app.use(cors())
+    app.use(cors({ credentials: true, origin: env.DOMAIN }))
     app.use(cookieParser());
     app.use(express.urlencoded({ extended: false }));
-    app.use(express.json({reviver: JSONHelpers.parse}));
+    app.use(express.json({ reviver: JSONHelpers.parse }));
 
     const api = new API(db, logger.getSubLogger("API"))
 

@@ -70,14 +70,6 @@ export default class FrontEndAPI {
     return this.apiCall("/books/lend", { librarianId, studentId, bookItemId })
   }
 
-  getMessages = async (studentId, range) => {
-    return this.apiCall("/messages/get", { studentId, range })
-  }
-
-  sendMessage = async (studentId, content) => {
-    return this.apiCall("/messages/send", { studentId, content })
-  }
-
   createOne = async (type, obj) => {
     return this.apiCall(`/crud/${type}/create-one`, { item: obj })
   }

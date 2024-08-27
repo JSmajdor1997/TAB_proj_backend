@@ -1,6 +1,8 @@
 export interface Environment {
     PORT: number
 
+    DOMAIN: string
+
     DATABASE_URL: string
     DATABASE_PORT: number
     DATABASE_NAME: string

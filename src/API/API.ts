@@ -225,7 +225,7 @@ export default class API {
             }
         }
     }
-    
+
     readonly createOne = async <T extends CreateOneType>(type: T, obj: CreateQuery<T>): Promise<APIResponse<{ createdId: number }>> => {
         switch (type) {
             case CreateOneType.Author: {
@@ -460,7 +460,8 @@ export default class API {
             }
             case GetManyType.Books: {
                 const q = query as GetManyQuery<GetManyType.Books>;
-                sqlQuery = this.db.select().from(BooksTable);
+                sqlQuery = this.db.select().from(BooksTable).limit(range[1] - range[0])
+                    .offset(range[0]);
                 countQuery = this.db.select({ count: sql`COUNT(*)` }).from(BooksTable);
 
                 if (q.phrase) {
@@ -492,7 +493,8 @@ export default class API {
             }
             case GetManyType.Librarians: {
                 const q = query as GetManyQuery<GetManyType.Librarians>;
-                sqlQuery = this.db.select().from(LibrariansTable);
+                sqlQuery = this.db.select().from(LibrariansTable).limit(range[1] - range[0])
+                    .offset(range[0]);
                 countQuery = this.db.select({ count: sql`COUNT(*)` }).from(LibrariansTable);
 
                 if (q.phrase) {
@@ -525,7 +527,8 @@ export default class API {
             }
             case GetManyType.Students: {
                 const q = query as GetManyQuery<GetManyType.Students>;
-                sqlQuery = this.db.select().from(StudentsTable);
+                sqlQuery = this.db.select().from(StudentsTable).limit(range[1] - range[0])
+                    .offset(range[0]);
                 countQuery = this.db.select({ count: sql`COUNT(*)` }).from(StudentsTable);
 
                 if (q.phrase) {
