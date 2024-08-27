@@ -158,7 +158,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
 
                                     res.cookie("jwt", token, {
                                         maxAge: Period.Day, // would expire in 24hours
-                                        // httpOnly: true, // The cookie is only accessible by the web server
+                                        httpOnly: true, // The cookie is only accessible by the web server
                                         secure: true,
                                         sameSite: "none"
                                     })
@@ -184,7 +184,8 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                         return false
                                     }
 
-                                    res.cookie('jwt', '', { maxAge: 1, sameSite: "none" })
+                                    res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true })
+                                    res.clearCookie('jwt', {sameSite: "none", httpOnly: true, secure: true })
 
                                     pathHandlerLogger.log(LogLevel.Success, `Logout successful`)
 

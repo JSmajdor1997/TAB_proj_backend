@@ -31,12 +31,6 @@ export default class FrontEndAPI {
             credentials: 'include'
         });
 
-        // Extract the set-cookie header if present and update the cookie field
-        const setCookie = response.headers.get('set-cookie');
-        if (setCookie) {
-            this.cookie = setCookie;
-        }
-
         return response.text().then(it => {
             return JSON.parse(it, JSONHelpers.parse)
         });
