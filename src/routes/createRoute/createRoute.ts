@@ -205,6 +205,8 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                     if (result.data != null) {
                         res.set("Access-Control-Expose-Headers","Authorization")
 
+                        console.log(await result.data)
+
                         res.status(StatusCode.SuccessOK).send(JSON.stringify(await result.data, JSONHelpers.stringify))
                     } else {
                         res.status(result.error?.code as number).send({
