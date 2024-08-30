@@ -488,10 +488,28 @@ export default class API {
                 break;
             }
             case GetManyType.Borrowings: {
-                sqlQuery = this.db.select().from(BorrowingsTable)
+                const q = query as GetManyQuery<GetManyType.Borrowings>;
+
+                // Base select query with optional studentId filter
+                sqlQuery = this.db.select()
+                    .from(BorrowingsTable)
                     .limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(BorrowingsTable);
+
+                // Apply the studentId filter if provided
+                if (q.studentId != undefined) {
+                    sqlQuery = sqlQuery.where(eq(BorrowingsTable.studentId, q.studentId));
+                }
+
+                // Count query with optional studentId filter
+                countQuery = this.db.select({ count: sql`COUNT(*)` })
+                    .from(BorrowingsTable);
+
+                // Apply the studentId filter if provided
+                if (q.studentId != undefined) {
+                    countQuery = countQuery.where(eq(BorrowingsTable.studentId, q.studentId));
+                }
+
                 break;
             }
             case GetManyType.Fees: {

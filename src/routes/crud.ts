@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CreateOneType } from "../API/params/CreateOne"
 import { DeleteOneType } from "../API/params/DeleteOne"
-import { GetManyType } from "../API/params/GetMany"
+import { GetManyQuery, GetManyType } from "../API/params/GetMany"
 import { GetOneType } from "../API/params/GetOne"
 import { UpdateOneType } from "../API/params/UpdateOne"
 import { AuthLevel } from "./createRoute/AuthLevel"
@@ -15,6 +15,7 @@ import { GenresTable } from "../DB/schema/GenresTable"
 import { LanguagesTable } from "../DB/schema/LanguagesTable"
 import { LibrariansTable } from "../DB/schema/LibrariansTable"
 import { LocationsTable } from "../DB/schema/LocationsTable"
+import { UserType } from "../API/FrontEndAPI"
 
 export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", {
     method: Method.POST,
@@ -69,13 +70,37 @@ export const UpdateOneAction_Path = createRoute("/crud/:objectType/update-one", 
 
 export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
     method: Method.POST,
-    authLevel: AuthLevel.Librarian,
+    authLevel: AuthLevel.AnyAuthorized,
     bodySchema: z.object({
         range: z.any(),
         query: z.any(),
     }),
     querySchema: undefined,
-    handler: async ({ api, pathsParams, params: { range, query } }) => {
+    handler: async ({ api, pathsParams, user, params: { range, query } }) => {
+        if(user.user.userType == AuthLevel.Student && ![GetManyType.BookItems, GetManyType.Books, GetManyType.Borrowings].includes(pathsParams.objectType as GetManyType)) {
+            return {
+                error: {
+                    code: 400,
+                    message: "Not authorized",
+                    customCode: "chciałoby się"
+                }
+            }
+        }
+
+        if(pathsParams.objectType === GetManyType.Borrowings && user.user.userType == AuthLevel.Student) {
+            const q = (query as GetManyQuery<GetManyType.Borrowings>)
+
+            if(q.studentId !== null && q.studentId !== user.user.id) {
+                return {
+                    error: {
+                        code: 400,
+                        message: "Not authorized, students may only access own borrowings",
+                        customCode: "chciałoby się"
+                    }
+                }
+            }
+        }
+
         return {
             data: api.getMany(pathsParams.objectType as any, query, range)
         }

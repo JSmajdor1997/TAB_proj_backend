@@ -103,7 +103,12 @@ export const User_Login_Route = createRoute("/user/login", {
             }
 
             return {
-                data: "User logged in successfully"
+                data: {
+                    user: {
+                        ...result,
+                        password: undefined
+                    }
+                }
             }
         }
     },
