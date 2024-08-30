@@ -431,6 +431,8 @@ export default class API {
             }
             case GetManyType.BookItems: {
                 const q = query as GetManyQuery<GetManyType.BookItems>;
+
+                // Base select query with additional isBorrowed field
                 sqlQuery = this.db.select({
                     ean: BookItemsTable.ean,
                     ISBN: BookItemsTable.isbn,
@@ -439,19 +441,34 @@ export default class API {
                     language_id: BookItemsTable.languageId,
                     book_id: BooksTable.id,
                     book_title: BooksTable.title,
+                    isBorrowed: sql`CASE WHEN ${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL THEN TRUE ELSE FALSE END`.as('isBorrowed')
                 })
                     .from(BookItemsTable)
-                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId));
+                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId))
+                    .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan));
+
+                // Count query (no need to include the isBorrowed logic here)
                 countQuery = this.db.select({ count: sql`COUNT(*)` })
                     .from(BookItemsTable)
                     .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId));
 
+                // Apply the isBorrowed filter if it's defined
+                if (q.isBorrowed !== undefined) {
+                    const isBorrowedCondition = q.isBorrowed
+                        ? sql`${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL`
+                        : sql`${BorrowingsTable.id} IS NULL OR ${BorrowingsTable.returnDate} IS NOT NULL`;
+
+                    sqlQuery = sqlQuery.where(isBorrowedCondition);
+                    countQuery = countQuery.where(isBorrowedCondition);
+                }
+
+                // Apply search by phrase if provided
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
                     countQuery = countQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
-
                 }
 
+                // Filter by language ID if provided
                 if (q.languageId) {
                     sqlQuery = sqlQuery.where(eq(BookItemsTable.languageId, q.languageId));
                     countQuery = countQuery.where(eq(BookItemsTable.languageId, q.languageId));
