@@ -90,7 +90,7 @@ export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
         if(pathsParams.objectType === GetManyType.Borrowings && user.user.userType == AuthLevel.Student) {
             const q = (query as GetManyQuery<GetManyType.Borrowings>)
 
-            if(q.studentId !== null && q.studentId !== user.user.id) {
+            if(q.studentId !== user.user.id) {
                 return {
                     error: {
                         code: 400,
