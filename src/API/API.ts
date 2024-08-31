@@ -366,6 +366,7 @@ export default class API {
         T extends GetOneType.Genre ? Genre :
         T extends GetOneType.Librarian ? Librarian :
         T extends GetOneType.Student ? Student :
+        T extends GetOneType.BookItem ? Student :
         never
     )>> => {
         let items: any[]
@@ -385,6 +386,10 @@ export default class API {
             }
             case GetOneType.Student: {
                 items = await this.db.select().from(StudentsTable).where(eq(StudentsTable.id, id))
+                break;
+            }
+            case GetOneType.BookItem: {
+                items = await this.db.select().from(BookItemsTable).where(eq(BookItemsTable.ean, id))
                 break;
             }
             default: {
