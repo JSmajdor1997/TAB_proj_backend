@@ -433,7 +433,7 @@ export default class API {
                 const q = query as GetManyQuery<GetManyType.BookItems>;
 
                 // Base select query with additional isBorrowed field
-                sqlQuery = this.db.select({
+                sqlQuery = this.db.selectDistinct({
                     ean: BookItemsTable.ean,
                     ISBN: BookItemsTable.isbn,
                     remarks: BookItemsTable.remarks,
@@ -443,9 +443,9 @@ export default class API {
                     book_title: BooksTable.title,
                     isBorrowed: sql`CASE WHEN ${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL THEN TRUE ELSE FALSE END`.as('isBorrowed')
                 })
-                    .from(BookItemsTable)
-                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId))
-                    .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan));
+                .from(BookItemsTable)
+                .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId))
+                .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan))
 
                 // Count query (no need to include the isBorrowed logic here)
                 countQuery = this.db.select({ count: sql`COUNT(*)` })
