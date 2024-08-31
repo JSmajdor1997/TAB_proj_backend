@@ -324,7 +324,8 @@ class API {
                 }
                 case GetMany_1.GetManyType.BookItems: {
                     const q = query;
-                    sqlQuery = this.db.select({
+                    // Base select query with additional isBorrowed field
+                    sqlQuery = this.db.selectDistinct({
                         ean: BookItemsTable_1.BookItemsTable.ean,
                         ISBN: BookItemsTable_1.BookItemsTable.isbn,
                         remarks: BookItemsTable_1.BookItemsTable.remarks,
@@ -332,16 +333,28 @@ class API {
                         language_id: BookItemsTable_1.BookItemsTable.languageId,
                         book_id: BooksTable_1.BooksTable.id,
                         book_title: BooksTable_1.BooksTable.title,
+                        isBorrowed: (0, drizzle_orm_1.sql) `CASE WHEN ${BorrowingsTable_1.BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable_1.BorrowingsTable.returnDate} IS NULL THEN TRUE ELSE FALSE END`.as('isBorrowed')
                     })
                         .from(BookItemsTable_1.BookItemsTable)
-                        .innerJoin(BooksTable_1.BooksTable, (0, drizzle_orm_1.eq)(BooksTable_1.BooksTable.id, BookItemsTable_1.BookItemsTable.bookId));
+                        .innerJoin(BooksTable_1.BooksTable, (0, drizzle_orm_1.eq)(BooksTable_1.BooksTable.id, BookItemsTable_1.BookItemsTable.bookId))
+                        .leftJoin(BorrowingsTable_1.BorrowingsTable, (0, drizzle_orm_1.eq)(BookItemsTable_1.BookItemsTable.ean, BorrowingsTable_1.BorrowingsTable.bookItemEan));
                     countQuery = this.db.select({ count: (0, drizzle_orm_1.sql) `COUNT(*)` })
                         .from(BookItemsTable_1.BookItemsTable)
                         .innerJoin(BooksTable_1.BooksTable, (0, drizzle_orm_1.eq)(BooksTable_1.BooksTable.id, BookItemsTable_1.BookItemsTable.bookId));
+                    // Apply the isBorrowed filter if it's defined
+                    if (q.isBorrowed !== undefined) {
+                        const isBorrowedCondition = q.isBorrowed
+                            ? (0, drizzle_orm_1.sql) `${BorrowingsTable_1.BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable_1.BorrowingsTable.returnDate} IS NULL`
+                            : (0, drizzle_orm_1.sql) `${BorrowingsTable_1.BorrowingsTable.id} IS NULL OR ${BorrowingsTable_1.BorrowingsTable.returnDate} IS NOT NULL`;
+                        sqlQuery = sqlQuery.where(isBorrowedCondition);
+                        countQuery = countQuery.where(isBorrowedCondition);
+                    }
+                    // Apply search by phrase if provided
                     if (q.phrase) {
                         sqlQuery = sqlQuery.where((0, drizzle_orm_1.sql) `${BooksTable_1.BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
                         countQuery = countQuery.where((0, drizzle_orm_1.sql) `${BooksTable_1.BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
                     }
+                    // Filter by language ID if provided
                     if (q.languageId) {
                         sqlQuery = sqlQuery.where((0, drizzle_orm_1.eq)(BookItemsTable_1.BookItemsTable.languageId, q.languageId));
                         countQuery = countQuery.where((0, drizzle_orm_1.eq)(BookItemsTable_1.BookItemsTable.languageId, q.languageId));
@@ -360,10 +373,23 @@ class API {
                     break;
                 }
                 case GetMany_1.GetManyType.Borrowings: {
-                    sqlQuery = this.db.select().from(BorrowingsTable_1.BorrowingsTable)
+                    const q = query;
+                    // Base select query with optional studentId filter
+                    sqlQuery = this.db.select()
+                        .from(BorrowingsTable_1.BorrowingsTable)
                         .limit(range[1] - range[0])
                         .offset(range[0]);
-                    countQuery = this.db.select({ count: (0, drizzle_orm_1.sql) `COUNT(*)` }).from(BorrowingsTable_1.BorrowingsTable);
+                    // Apply the studentId filter if provided
+                    if (q.studentId != undefined) {
+                        sqlQuery = sqlQuery.where((0, drizzle_orm_1.eq)(BorrowingsTable_1.BorrowingsTable.studentId, q.studentId));
+                    }
+                    // Count query with optional studentId filter
+                    countQuery = this.db.select({ count: (0, drizzle_orm_1.sql) `COUNT(*)` })
+                        .from(BorrowingsTable_1.BorrowingsTable);
+                    // Apply the studentId filter if provided
+                    if (q.studentId != undefined) {
+                        countQuery = countQuery.where((0, drizzle_orm_1.eq)(BorrowingsTable_1.BorrowingsTable.studentId, q.studentId));
+                    }
                     break;
                 }
                 case GetMany_1.GetManyType.Fees: {
@@ -424,7 +450,10 @@ class API {
                 }
             }
             return {
-                data: (yield sqlQuery).map((it) => (Object.assign(Object.assign({}, it), { password: undefined })))
+                data: {
+                    items: (yield sqlQuery).map((it) => (Object.assign(Object.assign({}, it), { password: undefined }))),
+                    totalAmount: yield countQuery
+                }
             };
         });
         API.getDefaultLibrarian().then(defaultLibrarian => {

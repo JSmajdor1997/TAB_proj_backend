@@ -131,8 +131,8 @@ function createRoute(path, { bodySchema, querySchema, handler, method, authLevel
                                                 pathHandlerLogger.log(LogLevel_1.default.CriticalError, `User not logged in, aborting`);
                                                 return false;
                                             }
-                                            res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true });
-                                            res.clearCookie('jwt');
+                                            res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true });
+                                            res.clearCookie('jwt', { sameSite: "none", httpOnly: true, secure: true });
                                             pathHandlerLogger.log(LogLevel_1.default.Success, `Logout successful`);
                                             return true;
                                         }
@@ -150,6 +150,7 @@ function createRoute(path, { bodySchema, querySchema, handler, method, authLevel
                         });
                         if (result.data != null) {
                             res.set("Access-Control-Expose-Headers", "Authorization");
+                            console.log(yield result.data);
                             res.status(StatusCode_1.default.SuccessOK).send(JSON.stringify(yield result.data, JSONHelpers_1.default.stringify));
                         }
                         else {

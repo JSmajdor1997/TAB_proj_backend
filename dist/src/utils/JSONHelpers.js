@@ -9,6 +9,9 @@ class JSONHelpers {
             else if (value.__type === 'Date') {
                 return new Date(value.value);
             }
+            else if (value.__type === "BigInt") {
+                return BigInt(value.value);
+            }
         }
         return value;
     }
@@ -23,6 +26,12 @@ class JSONHelpers {
             return {
                 value: this[key].toUTCString(),
                 __type: 'Date',
+            };
+        }
+        else if (typeof this[key] === "bigint") {
+            return {
+                value: this[key].toString(),
+                __type: "BigInt"
             };
         }
         return value;

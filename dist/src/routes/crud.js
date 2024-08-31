@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetOneAction_Path = exports.GetManyAction_Path = exports.UpdateOneAction_Path = exports.DeleteOneAction_Path = exports.CreateOneAction_Path = void 0;
 const zod_1 = require("zod");
+const GetMany_1 = require("../API/params/GetMany");
 const AuthLevel_1 = require("./createRoute/AuthLevel");
 const Method_1 = require("./createRoute/Method");
 const createRoute_1 = __importDefault(require("./createRoute/createRoute"));
@@ -75,13 +76,34 @@ exports.UpdateOneAction_Path = (0, createRoute_1.default)("/crud/:objectType/upd
 });
 exports.GetManyAction_Path = (0, createRoute_1.default)("/crud/:objectType/get-many", {
     method: Method_1.Method.POST,
-    authLevel: AuthLevel_1.AuthLevel.Librarian,
+    authLevel: AuthLevel_1.AuthLevel.AnyAuthorized,
     bodySchema: zod_1.z.object({
         range: zod_1.z.any(),
         query: zod_1.z.any(),
     }),
     querySchema: undefined,
-    handler: (_d) => __awaiter(void 0, [_d], void 0, function* ({ api, pathsParams, params: { range, query } }) {
+    handler: (_d) => __awaiter(void 0, [_d], void 0, function* ({ api, pathsParams, user, params: { range, query } }) {
+        if (user.user.userType == AuthLevel_1.AuthLevel.Student && ![GetMany_1.GetManyType.BookItems, GetMany_1.GetManyType.Books, GetMany_1.GetManyType.Borrowings].includes(pathsParams.objectType)) {
+            return {
+                error: {
+                    code: 400,
+                    message: "Not authorized",
+                    customCode: "chciałoby się"
+                }
+            };
+        }
+        if (pathsParams.objectType === GetMany_1.GetManyType.Borrowings && user.user.userType == AuthLevel_1.AuthLevel.Student) {
+            const q = query;
+            if (q.studentId !== user.user.id) {
+                return {
+                    error: {
+                        code: 400,
+                        message: "Not authorized, students may only access own borrowings",
+                        customCode: "chciałoby się"
+                    }
+                };
+            }
+        }
         return {
             data: api.getMany(pathsParams.objectType, query, range)
         };

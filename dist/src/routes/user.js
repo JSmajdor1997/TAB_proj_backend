@@ -119,7 +119,9 @@ exports.User_Login_Route = (0, createRoute_1.default)("/user/login", {
                     };
                 }
                 return {
-                    data: "User logged in successfully"
+                    data: {
+                        user: Object.assign(Object.assign({}, result), { password: undefined })
+                    }
                 };
             }
         });

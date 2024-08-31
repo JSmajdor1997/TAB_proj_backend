@@ -397,33 +397,31 @@ export default class API {
         }
     }
 
-    readonly getMany = async <T extends GetManyType>(type: T, query: GetManyQuery<T>, range: [number, number]): Promise<APIResponse<(
-        T extends GetManyType.Authors ? Author :
-        T extends GetManyType.BookItems ? BookItem :
-        T extends GetManyType.Books ? Book :
-        T extends GetManyType.Borrowings ? Borrowing :
-        T extends GetManyType.Fees ? Fee :
-        T extends GetManyType.Languages ? Language :
-        T extends GetManyType.Librarians ? Librarian :
-        T extends GetManyType.Locations ? Location :
-        T extends GetManyType.Reservations ? Reservation :
-        T extends GetManyType.Students ? Student :
-        never
-    )[]>> => {
+    readonly getMany = async <T extends GetManyType>(type: T, query: GetManyQuery<T>, range: [number, number]): Promise<APIResponse<{
+        items: (
+            T extends GetManyType.Authors ? Author :
+            T extends GetManyType.BookItems ? BookItem :
+            T extends GetManyType.Books ? Book :
+            T extends GetManyType.Borrowings ? Borrowing :
+            T extends GetManyType.Fees ? Fee :
+            T extends GetManyType.Languages ? Language :
+            T extends GetManyType.Librarians ? Librarian :
+            T extends GetManyType.Locations ? Location :
+            T extends GetManyType.Reservations ? Reservation :
+            T extends GetManyType.Students ? Student :
+            never
+        )[],
+        totalAmount: number
+    }>> => {
         let sqlQuery: any;
-        let countQuery: any;
 
         switch (type) {
             case GetManyType.Authors: {
                 const q = query as GetManyQuery<GetManyType.Authors>;
                 sqlQuery = this.db.select().from(AuthorsTable);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(AuthorsTable);
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(
-                        sql`to_tsvector('english', ${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
-                    );
-                    countQuery = countQuery.where(
                         sql`to_tsvector('english', ${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
                     );
                 }
@@ -443,14 +441,9 @@ export default class API {
                     book_title: BooksTable.title,
                     isBorrowed: sql`CASE WHEN ${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL THEN TRUE ELSE FALSE END`.as('isBorrowed')
                 })
-                .from(BookItemsTable)
-                .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId))
-                .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan))
-
-                // Count query (no need to include the isBorrowed logic here)
-                countQuery = this.db.select({ count: sql`COUNT(*)` })
                     .from(BookItemsTable)
-                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId));
+                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId))
+                    .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan))
 
                 // Apply the isBorrowed filter if it's defined
                 if (q.isBorrowed !== undefined) {
@@ -459,19 +452,16 @@ export default class API {
                         : sql`${BorrowingsTable.id} IS NULL OR ${BorrowingsTable.returnDate} IS NOT NULL`;
 
                     sqlQuery = sqlQuery.where(isBorrowedCondition);
-                    countQuery = countQuery.where(isBorrowedCondition);
                 }
 
                 // Apply search by phrase if provided
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
-                    countQuery = countQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
                 }
 
                 // Filter by language ID if provided
                 if (q.languageId) {
                     sqlQuery = sqlQuery.where(eq(BookItemsTable.languageId, q.languageId));
-                    countQuery = countQuery.where(eq(BookItemsTable.languageId, q.languageId));
                 }
                 break;
             }
@@ -479,11 +469,9 @@ export default class API {
                 const q = query as GetManyQuery<GetManyType.Books>;
                 sqlQuery = this.db.select().from(BooksTable).limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(BooksTable);
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
-                    countQuery = countQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
                 }
                 break;
             }
@@ -501,42 +489,27 @@ export default class API {
                     sqlQuery = sqlQuery.where(eq(BorrowingsTable.studentId, q.studentId));
                 }
 
-                // Count query with optional studentId filter
-                countQuery = this.db.select({ count: sql`COUNT(*)` })
-                    .from(BorrowingsTable);
-
-                // Apply the studentId filter if provided
-                if (q.studentId != undefined) {
-                    countQuery = countQuery.where(eq(BorrowingsTable.studentId, q.studentId));
-                }
-
                 break;
             }
             case GetManyType.Fees: {
                 sqlQuery = this.db.select().from(FeesTable)
                     .limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(FeesTable);
                 break;
             }
             case GetManyType.Languages: {
                 sqlQuery = this.db.select().from(LanguagesTable)
                     .limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(LanguagesTable);
                 break;
             }
             case GetManyType.Librarians: {
                 const q = query as GetManyQuery<GetManyType.Librarians>;
                 sqlQuery = this.db.select().from(LibrariansTable).limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(LibrariansTable);
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(
-                        sql`to_tsvector('english', ${LibrariansTable.name} || ' ' || ${LibrariansTable.surname}) @@ to_tsquery('english', ${q.phrase})`
-                    );
-                    countQuery = countQuery.where(
                         sql`to_tsvector('english', ${LibrariansTable.name} || ' ' || ${LibrariansTable.surname}) @@ to_tsquery('english', ${q.phrase})`
                     );
                 }
@@ -546,17 +519,14 @@ export default class API {
                 sqlQuery = this.db.select().from(LocationsTable)
                     .limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(LocationsTable);
                 break;
             }
             case GetManyType.Reservations: {
                 const q = query as GetManyQuery<GetManyType.Reservations>;
                 sqlQuery = this.db.select().from(ReservationsTable);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(ReservationsTable);
 
                 if (q.status) {
                     sqlQuery = sqlQuery.where(eq(ReservationsTable.status, q.status));
-                    countQuery = countQuery.where(eq(ReservationsTable.status, q.status));
                 }
                 break;
             }
@@ -564,13 +534,9 @@ export default class API {
                 const q = query as GetManyQuery<GetManyType.Students>;
                 sqlQuery = this.db.select().from(StudentsTable).limit(range[1] - range[0])
                     .offset(range[0]);
-                countQuery = this.db.select({ count: sql`COUNT(*)` }).from(StudentsTable);
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(
-                        sql`to_tsvector('english', ${StudentsTable.name} || ' ' || ${StudentsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
-                    );
-                    countQuery = countQuery.where(
                         sql`to_tsvector('english', ${StudentsTable.name} || ' ' || ${StudentsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
                     );
                 }
@@ -581,8 +547,18 @@ export default class API {
             }
         }
 
+        const totalAmountQuery = this.db.selectDistinct({ count: sql`COUNT(*)` }).from(sqlQuery.as('subquery'));
+        const totalAmount = (await totalAmountQuery)[0].count as number;
+
         return {
-            data: (await sqlQuery).map((it: any) => ({ ...it, password: undefined }))
+            data: {
+                items: (
+                    await sqlQuery
+                        .limit(range[1] - range[0])
+                        .offset(range[0])
+                ).map((it: any) => ({ ...it, password: undefined })),
+                totalAmount
+            }
         }
     }
 }
