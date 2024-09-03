@@ -137,14 +137,6 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                 async login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null> {
                                     pathHandlerLogger.log(LogLevel.Info, `Requested login`)
     
-                                    // user: AuthLevelType extends AuthLevel.None ? {
-                                    //     user: null,
-                                    //     login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null>
-                                    // } : {
-                                    //     user: Librarian | Student,
-                                    //     logout(): Promise<boolean>
-                                    // },
-    
                                     const getter = userType == AuthLevel.Librarian ?
                                         api.getLibrarian :
                                         api.getStudent

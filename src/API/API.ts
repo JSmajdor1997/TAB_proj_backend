@@ -584,6 +584,10 @@ export default class API {
                 const q = query as GetManyQuery<GetManyType.Reservations>;
                 sqlQuery = this.db.select().from(ReservationsTable);
 
+                if (q.studentId != undefined) {
+                    sqlQuery = sqlQuery.where(eq(ReservationsTable.studentId, q.studentId));
+                }
+
                 if (q.status) {
                     sqlQuery = sqlQuery.where(eq(ReservationsTable.status, q.status));
                 }
