@@ -200,9 +200,9 @@ export default class API {
 
         //checking if available
         const result = this.db.select().from(BorrowingsTable).where(and(eq(BorrowingsTable.bookItemEan, bookItemId), not(isNull(BorrowingsTable.returnDate))))
-        if (result != null) {
+        if (result == null) {
             return {
-                error: "Book is already returned"
+                error: "Book is already lent"
             }
         }
 

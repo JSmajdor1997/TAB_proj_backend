@@ -124,94 +124,103 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                             .json({ message: "Invalid parameters provided" })
                     }
 
-                    const result = await handler({
-                        params: parsedParams,
-                        api,
-                        pathsParams: req.params as any,
-                        user: loggedInUser == null ? {
-                            user: null,
-                            async login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null> {
-                                pathHandlerLogger.log(LogLevel.Info, `Requested login`)
-
-                                // user: AuthLevelType extends AuthLevel.None ? {
-                                //     user: null,
-                                //     login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null>
-                                // } : {
-                                //     user: Librarian | Student,
-                                //     logout(): Promise<boolean>
-                                // },
-
-                                const getter = userType == AuthLevel.Librarian ?
-                                    api.getLibrarian :
-                                    api.getStudent
-
-                                return getter({ email, password }).then(user => {
-                                    if (user == null) {
-                                        pathHandlerLogger.log(LogLevel.Error, `Invalid auth provided`)
-
-                                        return null
-                                    }
-
-                                    const token = jwt.sign({ id: user.id, userType }, SECRET_ACCESS_TOKEN, {
-                                        expiresIn: '24h',
-                                    });
-
-                                    res.cookie("jwt", token, {
-                                        maxAge: Period.Day, // would expire in 24hours
-                                        httpOnly: true, // The cookie is only accessible by the web server
-                                        secure: true,
-                                        sameSite: "none"
-                                    })
-
-                                    pathHandlerLogger.log(LogLevel.Success, `Valid auth provided | logged in`)
-
-                                    return user
-                                }) as any
-                            }
-                        } : {
-                            user: {
-                                ...loggedInUser,
-                                userType: isLibrarian(loggedInUser) ? AuthLevel.Librarian : AuthLevel.Student
-                            },
-                            async logout() {
-                                pathHandlerLogger.log(LogLevel.Info, `Logout requested`)
-
-                                try {
-                                    const jwt = req.cookies?.jwt
-                                    if (jwt == null) {
-                                        pathHandlerLogger.log(LogLevel.CriticalError, `User not logged in, aborting`)
-
+                    try {
+                        const result = await handler({
+                            params: parsedParams,
+                            api,
+                            pathsParams: req.params as any,
+                            user: loggedInUser == null ? {
+                                user: null,
+                                async login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null> {
+                                    pathHandlerLogger.log(LogLevel.Info, `Requested login`)
+    
+                                    // user: AuthLevelType extends AuthLevel.None ? {
+                                    //     user: null,
+                                    //     login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null>
+                                    // } : {
+                                    //     user: Librarian | Student,
+                                    //     logout(): Promise<boolean>
+                                    // },
+    
+                                    const getter = userType == AuthLevel.Librarian ?
+                                        api.getLibrarian :
+                                        api.getStudent
+    
+                                    return getter({ email, password }).then(user => {
+                                        if (user == null) {
+                                            pathHandlerLogger.log(LogLevel.Error, `Invalid auth provided`)
+    
+                                            return null
+                                        }
+    
+                                        const token = jwt.sign({ id: user.id, userType }, SECRET_ACCESS_TOKEN, {
+                                            expiresIn: '24h',
+                                        });
+    
+                                        res.cookie("jwt", token, {
+                                            maxAge: Period.Day, // would expire in 24hours
+                                            httpOnly: true, // The cookie is only accessible by the web server
+                                            secure: true,
+                                            sameSite: "none"
+                                        })
+    
+                                        pathHandlerLogger.log(LogLevel.Success, `Valid auth provided | logged in`)
+    
+                                        return user
+                                    }) as any
+                                }
+                            } : {
+                                user: {
+                                    ...loggedInUser,
+                                    userType: isLibrarian(loggedInUser) ? AuthLevel.Librarian : AuthLevel.Student
+                                },
+                                async logout() {
+                                    pathHandlerLogger.log(LogLevel.Info, `Logout requested`)
+    
+                                    try {
+                                        const jwt = req.cookies?.jwt
+                                        if (jwt == null) {
+                                            pathHandlerLogger.log(LogLevel.CriticalError, `User not logged in, aborting`)
+    
+                                            return false
+                                        }
+    
+                                        res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true })
+                                        res.clearCookie('jwt', {sameSite: "none", httpOnly: true, secure: true })
+    
+                                        pathHandlerLogger.log(LogLevel.Success, `Logout successful`)
+    
+                                        return true
+                                    } catch (err) {
                                         return false
                                     }
-
-                                    res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true })
-                                    res.clearCookie('jwt', {sameSite: "none", httpOnly: true, secure: true })
-
-                                    pathHandlerLogger.log(LogLevel.Success, `Logout successful`)
-
-                                    return true
-                                } catch (err) {
-                                    return false
                                 }
+                            } as any,
+                            logger: pathHandlerLogger,
+                            _native: {
+                                req,
+                                res
                             }
-                        } as any,
-                        logger: pathHandlerLogger,
-                        _native: {
-                            req,
-                            res
+                        })
+
+                        if (result.data != null) {
+                            res.set("Access-Control-Expose-Headers","Authorization")
+    
+                            console.log(await result.data)
+    
+                            res.status(StatusCode.SuccessOK).send(JSON.stringify(await result.data, JSONHelpers.stringify))
+                        } else {
+                            res.status(result.error?.code as number).send({
+                                message: result.error?.message,
+                                customCode: result.error?.customCode
+                            })
                         }
-                    })
+                    } catch(exc: any) {
+                        logger.log(LogLevel.CriticalError, exc.toString())
 
-                    if (result.data != null) {
-                        res.set("Access-Control-Expose-Headers","Authorization")
-
-                        console.log(await result.data)
-
-                        res.status(StatusCode.SuccessOK).send(JSON.stringify(await result.data, JSONHelpers.stringify))
-                    } else {
-                        res.status(result.error?.code as number).send({
-                            message: result.error?.message,
-                            customCode: result.error?.customCode
+                        res.status(500).send({
+                            message: "Unexpected error occurred!",
+                            customCode: -1
                         })
                     }
                 }
