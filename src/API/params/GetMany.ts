@@ -1,4 +1,4 @@
-import { ReservationStatus, ReservationStatusEnums } from "../../DB/schema/ReservationsTable";
+import { ReservationStatus } from "../../DB/schema/ReservationsTable";
 
 export enum GetManyType {
     Authors = "Authors",
@@ -15,7 +15,7 @@ export enum GetManyType {
 
 export type GetManyQuery<T extends GetManyType> = (
     T extends GetManyType.Authors ? { phrase?: string } :
-    T extends GetManyType.BookItems ? { phrase?: string, languageId: number, isBorrowed: boolean | null } :
+    T extends GetManyType.BookItems ? { phrase?: string, languageId: number, isBorrowed: boolean | null, bookId: number } :
     T extends GetManyType.Books ? { phrase?: string } :
     T extends GetManyType.Borrowings ? { phrase?: string, studentId: number | null } :
     T extends GetManyType.Fees ? {} :

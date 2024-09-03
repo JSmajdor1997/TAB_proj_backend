@@ -462,7 +462,7 @@ export default class API {
                     .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan))
 
                 // Apply the isBorrowed filter if it's defined
-                if (q.isBorrowed !== undefined) {
+                if (typeof q.isBorrowed === "boolean") {
                     const isBorrowedCondition = q.isBorrowed
                         ? sql`${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL`
                         : sql`${BorrowingsTable.id} IS NULL OR ${BorrowingsTable.returnDate} IS NOT NULL`;
@@ -471,12 +471,16 @@ export default class API {
                 }
 
                 // Apply search by phrase if provided
-                if (q.phrase) {
+                if (typeof q.phrase == "string") {
                     sqlQuery = sqlQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
                 }
 
+                if (typeof q.bookId == "number") {
+                    sqlQuery = sqlQuery.where(eq(BookItemsTable.bookId, q.bookId));
+                }
+
                 // Filter by language ID if provided
-                if (q.languageId) {
+                if (typeof q.languageId == "number") {
                     sqlQuery = sqlQuery.where(eq(BookItemsTable.languageId, q.languageId));
                 }
                 break;
