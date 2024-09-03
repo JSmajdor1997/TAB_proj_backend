@@ -22,6 +22,7 @@ import { Language, LanguagesTable } from "../DB/schema/LanguagesTable";
 import { Genre, GenresTable } from "../DB/schema/GenresTable";
 import { Book, BooksTable } from "../DB/schema/BooksTable";
 import { Fee, FeesTable } from "../DB/schema/FeesTable";
+import { BooksGenresTable } from "../DB/schema/BooksGenresTable";
 
 export type APIResponse<DataType> = {
     data: DataType
@@ -400,7 +401,46 @@ export default class API {
                 break;
             }
             case GetOneType.BookItem: {
-                items = await this.db.select().from(BookItemsTable).where(eq(BookItemsTable.ean, id))
+                items = await this.db.select({
+                    bookItem: BookItemsTable,
+                    language: LanguagesTable,
+                    location: LocationsTable,
+                    author: AuthorsTable,
+                    genre: GenresTable
+                })
+                .from(BookItemsTable)
+                .leftJoin(LanguagesTable, eq(BookItemsTable.languageId, LanguagesTable.id))
+                .leftJoin(LocationsTable, eq(BookItemsTable.locationId, LocationsTable.id))
+                .leftJoin(AuthorsBooksTable, eq(BookItemsTable.bookId, AuthorsBooksTable.bookId))
+                .leftJoin(AuthorsTable, eq(AuthorsBooksTable.authorId, AuthorsTable.id))
+                .leftJoin(BooksGenresTable, eq(BookItemsTable.bookId, BooksGenresTable.bookId))
+                .leftJoin(GenresTable, eq(BooksGenresTable.genreId, GenresTable.id))
+                .where(eq(BookItemsTable.ean, id));
+                
+                // Aggregate authors and genres into arrays
+                const result = items.reduce((acc, item) => {
+                    if (!acc[item.bookItem.ean]) {
+                        acc[item.bookItem.ean] = {
+                            ...item.bookItem,
+                            language: item.language,
+                            location: item.location,
+                            authors: [],
+                            genres: [],
+                        };
+                    }
+                
+                    if (item.author && !acc[item.bookItem.ean].authors.find((author: any) => author.id === item.author.id)) {
+                        acc[item.bookItem.ean].authors.push(item.author);
+                    }
+                
+                    if (item.genre && !acc[item.bookItem.ean].genres.find((genre: any) => genre.id === item.genre.id)) {
+                        acc[item.bookItem.ean].genres.push(item.genre);
+                    }
+                
+                    return acc;
+                }, {});
+
+                items = Object.values(result);
                 break;
             }
             default: {
