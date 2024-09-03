@@ -82,6 +82,7 @@ export const User_Login_Route = createRoute("/user/login", {
     }),
     querySchema: undefined,
     async handler({ params, user }) {
+        console.log(params)
         if (user.user != null) {
             return {
                 error: {

@@ -109,6 +109,9 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                     //parsing data if any
                     let parsedParams: (BodySchema extends ZodType<any, any, any> ? z.infer<BodySchema> : {}) & (QuerySchema extends ZodType<any, any, any> ? z.infer<QuerySchema> : {})
                     try {
+                        pathHandlerLogger.log(LogLevel.Info, `raw body params = ${JSON.stringify(req.body)}`)
+                        pathHandlerLogger.log(LogLevel.Info, `raw path params = ${JSON.stringify(req.query)}`)
+
                         const parsedBody = bodySchema?.parse(req.body) ?? {}
                         const parsedQuery = querySchema?.parse(req.query) ?? {}
 

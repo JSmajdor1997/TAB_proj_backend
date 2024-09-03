@@ -1,5 +1,5 @@
 import { createInsertSchema } from "drizzle-zod"
-import { z } from "zod"
+import { z, ZodType } from "zod"
 import { GetManyQuery, GetManyType } from "../API/params/GetMany"
 import { AuthorsTable } from "../DB/schema/AuthorsTable"
 import { BookItemsTable } from "../DB/schema/BookItemsTable"
@@ -8,7 +8,7 @@ import { GenresTable } from "../DB/schema/GenresTable"
 import { LanguagesTable } from "../DB/schema/LanguagesTable"
 import { LibrariansTable } from "../DB/schema/LibrariansTable"
 import { LocationsTable } from "../DB/schema/LocationsTable"
-import { StudentsTable } from "../DB/schema/StudentsTable"
+import { NewStudent, StudentsTable } from "../DB/schema/StudentsTable"
 import { AuthLevel } from "./createRoute/AuthLevel"
 import { Method } from "./createRoute/Method"
 import createRoute from "./createRoute/createRoute"
@@ -16,20 +16,17 @@ import createRoute from "./createRoute/createRoute"
 export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", {
     method: Method.POST,
     authLevel: AuthLevel.Librarian,
-    // bodySchema: z.object({
-    //     item: z.union([
-    //         createInsertSchema(AuthorsTable),
-    //         createInsertSchema(LocationsTable),
-    //         createInsertSchema(LibrariansTable),
-    //         createInsertSchema(LanguagesTable),
-    //         createInsertSchema(GenresTable),
-    //         createInsertSchema(BookItemsTable),
-    //         createInsertSchema(BooksTable),
-    //         createInsertSchema(StudentsTable),
-    //     ])
-    // }),
     bodySchema: z.object({
-        item: createInsertSchema(BookItemsTable)
+        item: z.union([
+            createInsertSchema(StudentsTable),
+            createInsertSchema(AuthorsTable),
+            createInsertSchema(LocationsTable),
+            createInsertSchema(LibrariansTable),
+            createInsertSchema(LanguagesTable),
+            createInsertSchema(GenresTable),
+            createInsertSchema(BookItemsTable),
+            createInsertSchema(BooksTable),
+        ])
     }),
     querySchema: undefined,
     handler: async ({ api, pathsParams, params: { item } }) => {

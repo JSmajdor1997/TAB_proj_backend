@@ -279,11 +279,12 @@ export default class API {
                 }))
             }
             case CreateOneType.Student: {
-                return this.db.insert(StudentsTable).values(obj as CreateQuery<CreateOneType.Student>).returning().then(it => ({
+                const rawUser = obj as CreateQuery<CreateOneType.Student>
+                return API.hashPassword(rawUser.password).then(hashedPassword => this.db.insert(StudentsTable).values({ ...obj, password: hashedPassword, email: rawUser.email.toLocaleLowerCase() } as CreateQuery<CreateOneType.Student>).returning().then(it => ({
                     data: {
                         createdId: it[0].id
                     }
-                }))
+                })))
             }
             default: {
                 throw new Error("Invalid type");

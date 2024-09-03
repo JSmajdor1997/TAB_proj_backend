@@ -9,7 +9,7 @@ export const StudentsTable = pgTable('students', {
     birthDate: date("birth_date", { mode: "date" }).notNull(),
     addedDate: date("added_date", { mode: "date" }).notNull().defaultNow(),
     classId: integer("class_id").references(() => ClassesTable.id).notNull(),
-    email: varchar("email", { length: 256 }).notNull(),
+    email: varchar("email", { length: 256 }).notNull().unique(),
     password: varchar("password", { length: 256 }).notNull(),
 });
 
