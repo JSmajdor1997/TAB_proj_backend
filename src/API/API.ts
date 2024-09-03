@@ -408,15 +408,15 @@ export default class API {
                     author: AuthorsTable,
                     genre: GenresTable
                 })
-                .from(BookItemsTable)
-                .leftJoin(LanguagesTable, eq(BookItemsTable.languageId, LanguagesTable.id))
-                .leftJoin(LocationsTable, eq(BookItemsTable.locationId, LocationsTable.id))
-                .leftJoin(AuthorsBooksTable, eq(BookItemsTable.bookId, AuthorsBooksTable.bookId))
-                .leftJoin(AuthorsTable, eq(AuthorsBooksTable.authorId, AuthorsTable.id))
-                .leftJoin(BooksGenresTable, eq(BookItemsTable.bookId, BooksGenresTable.bookId))
-                .leftJoin(GenresTable, eq(BooksGenresTable.genreId, GenresTable.id))
-                .where(eq(BookItemsTable.ean, id));
-                
+                    .from(BookItemsTable)
+                    .leftJoin(LanguagesTable, eq(BookItemsTable.languageId, LanguagesTable.id))
+                    .leftJoin(LocationsTable, eq(BookItemsTable.locationId, LocationsTable.id))
+                    .leftJoin(AuthorsBooksTable, eq(BookItemsTable.bookId, AuthorsBooksTable.bookId))
+                    .leftJoin(AuthorsTable, eq(AuthorsBooksTable.authorId, AuthorsTable.id))
+                    .leftJoin(BooksGenresTable, eq(BookItemsTable.bookId, BooksGenresTable.bookId))
+                    .leftJoin(GenresTable, eq(BooksGenresTable.genreId, GenresTable.id))
+                    .where(eq(BookItemsTable.ean, id));
+
                 // Aggregate authors and genres into arrays
                 const result = items.reduce((acc, item) => {
                     if (!acc[item.bookItem.ean]) {
@@ -428,15 +428,15 @@ export default class API {
                             genres: [],
                         };
                     }
-                
+
                     if (item.author && !acc[item.bookItem.ean].authors.find((author: any) => author.id === item.author.id)) {
                         acc[item.bookItem.ean].authors.push(item.author);
                     }
-                
+
                     if (item.genre && !acc[item.bookItem.ean].genres.find((genre: any) => genre.id === item.genre.id)) {
                         acc[item.bookItem.ean].genres.push(item.genre);
                     }
-                
+
                     return acc;
                 }, {});
 
@@ -527,8 +527,7 @@ export default class API {
             }
             case GetManyType.Books: {
                 const q = query as GetManyQuery<GetManyType.Books>;
-                sqlQuery = this.db.select().from(BooksTable).limit(range[1] - range[0])
-                    .offset(range[0]);
+                sqlQuery = this.db.select().from(BooksTable)
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
@@ -538,13 +537,19 @@ export default class API {
             case GetManyType.Borrowings: {
                 const q = query as GetManyQuery<GetManyType.Borrowings>;
 
-                // Base select query with optional studentId filter
-                sqlQuery = this.db.select()
+                sqlQuery = this.db.select({
+                    id: BorrowingsTable.id,
+                    studentId: BorrowingsTable.studentId,
+                    bookItemEan: BorrowingsTable.bookItemEan,
+                    librarianId: BorrowingsTable.librarianId,
+                    borrowingDate: BorrowingsTable.borrowingDate,
+                    returnDate: BorrowingsTable.returnDate,
+                    paidFee: BorrowingsTable.paidFee,
+                    librarian: LibrariansTable
+                })
                     .from(BorrowingsTable)
-                    .limit(range[1] - range[0])
-                    .offset(range[0]);
+                    .innerJoin(LibrariansTable, eq(BorrowingsTable.librarianId, LibrariansTable.id))
 
-                // Apply the studentId filter if provided
                 if (q.studentId != undefined) {
                     sqlQuery = sqlQuery.where(eq(BorrowingsTable.studentId, q.studentId));
                 }
@@ -553,20 +558,15 @@ export default class API {
             }
             case GetManyType.Fees: {
                 sqlQuery = this.db.select().from(FeesTable)
-                    .limit(range[1] - range[0])
-                    .offset(range[0]);
                 break;
             }
             case GetManyType.Languages: {
                 sqlQuery = this.db.select().from(LanguagesTable)
-                    .limit(range[1] - range[0])
-                    .offset(range[0]);
                 break;
             }
             case GetManyType.Librarians: {
                 const q = query as GetManyQuery<GetManyType.Librarians>;
-                sqlQuery = this.db.select().from(LibrariansTable).limit(range[1] - range[0])
-                    .offset(range[0]);
+                sqlQuery = this.db.select().from(LibrariansTable)
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(
@@ -577,8 +577,6 @@ export default class API {
             }
             case GetManyType.Locations: {
                 sqlQuery = this.db.select().from(LocationsTable)
-                    .limit(range[1] - range[0])
-                    .offset(range[0]);
                 break;
             }
             case GetManyType.Reservations: {
@@ -592,8 +590,7 @@ export default class API {
             }
             case GetManyType.Students: {
                 const q = query as GetManyQuery<GetManyType.Students>;
-                sqlQuery = this.db.select().from(StudentsTable).limit(range[1] - range[0])
-                    .offset(range[0]);
+                sqlQuery = this.db.select().from(StudentsTable)
 
                 if (q.phrase) {
                     sqlQuery = sqlQuery.where(
