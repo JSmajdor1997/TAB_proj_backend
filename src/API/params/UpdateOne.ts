@@ -5,7 +5,8 @@ export enum UpdateOneType {
     Fees = "Fees",
     Genre = "Genre",
     Language = "Language",
-    Location = "Location"
+    Location = "Location",
+    Student = "Student"
 }
 
 export type UpdateQuery<T extends UpdateOneType> = (
@@ -15,5 +16,6 @@ export type UpdateQuery<T extends UpdateOneType> = (
     T extends UpdateOneType.Genre ? {} :
     T extends UpdateOneType.Language ? {} :
     T extends UpdateOneType.Location ? {} :
+    T extends UpdateOneType.Student ? {} :
     never
 )

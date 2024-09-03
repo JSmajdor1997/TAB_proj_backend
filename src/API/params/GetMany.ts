@@ -22,7 +22,7 @@ export type GetManyQuery<T extends GetManyType> = (
     T extends GetManyType.Languages ? {} :
     T extends GetManyType.Librarians ? { phrase?: string } :
     T extends GetManyType.Locations ? {} :
-    T extends GetManyType.Reservations ? { status: ReservationStatus } :
+    T extends GetManyType.Reservations ? { status: ReservationStatus, studentId: number | null } :
     T extends GetManyType.Students ? { phrase?: string } :
     never
 )

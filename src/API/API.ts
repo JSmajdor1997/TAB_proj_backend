@@ -277,6 +277,13 @@ export default class API {
                     }
                 }))
             }
+            case CreateOneType.Student: {
+                return this.db.insert(StudentsTable).values(obj as CreateQuery<CreateOneType.Student>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
+            }
             default: {
                 throw new Error("Invalid type");
             }
@@ -350,6 +357,10 @@ export default class API {
             }
             case UpdateOneType.Location: {
                 await this.db.update(LocationsTable).set(obj).where(eq(LocationsTable.id, id))
+                break;
+            }
+            case UpdateOneType.Student: {
+                await this.db.update(StudentsTable).set(obj).where(eq(StudentsTable.id, id))
                 break;
             }
             default: {

@@ -16,6 +16,7 @@ import { LanguagesTable } from "../DB/schema/LanguagesTable"
 import { LibrariansTable } from "../DB/schema/LibrariansTable"
 import { LocationsTable } from "../DB/schema/LocationsTable"
 import { UserType } from "../API/FrontEndAPI"
+import { StudentsTable } from "../DB/schema/StudentsTable"
 
 export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", {
     method: Method.POST,
@@ -29,6 +30,7 @@ export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", 
             createInsertSchema(GenresTable),
             createInsertSchema(BookItemsTable),
             createInsertSchema(BooksTable),
+            createInsertSchema(StudentsTable),
         ])
     }),
     querySchema: undefined,
@@ -77,7 +79,7 @@ export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
     }),
     querySchema: undefined,
     handler: async ({ api, pathsParams, user, params: { range, query } }) => {
-        if(user.user.userType == AuthLevel.Student && ![GetManyType.BookItems, GetManyType.Books, GetManyType.Borrowings].includes(pathsParams.objectType as GetManyType)) {
+        if(user.user.userType == AuthLevel.Student && ![GetManyType.BookItems, GetManyType.Books, GetManyType.Borrowings, GetManyType.Reservations].includes(pathsParams.objectType as GetManyType)) {
             return {
                 error: {
                     code: 400,
@@ -87,8 +89,8 @@ export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
             }
         }
 
-        if(pathsParams.objectType === GetManyType.Borrowings && user.user.userType == AuthLevel.Student) {
-            const q = (query as GetManyQuery<GetManyType.Borrowings>)
+        if([GetManyType.Borrowings, GetManyType.Reservations].includes(pathsParams.objectType as GetManyType) && user.user.userType == AuthLevel.Student) {
+            const q = (query as GetManyQuery<GetManyType.Borrowings | GetManyType.Reservations>)
 
             if(q.studentId !== user.user.id) {
                 return {
