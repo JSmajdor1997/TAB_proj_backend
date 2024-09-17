@@ -169,7 +169,7 @@ export default class API {
             }
         }
 
-        await this.db.update(BorrowingsTable).set({ returnDate: new Date(), paidFee: fee }).where(eq(BorrowingsTable.id, bookItemId))
+        await this.db.update(BorrowingsTable).set({ returnDate: new Date(), paidFee: fee }).where(eq(BorrowingsTable.id, borrowingItem[0].id))
 
         return {
             data: {}
@@ -381,6 +381,7 @@ export default class API {
         T extends GetOneType.BookItem ? Student :
         T extends GetOneType.Book ? Book :
         T extends GetOneType.Reservation ? Reservation :
+        T extends GetOneType.Borrowing ? Borrowing :
         never
     )>> => {
         let items: any[]
@@ -388,6 +389,10 @@ export default class API {
         switch (type) {
             case GetOneType.Author: {
                 items = await this.db.select().from(AuthorsTable).where(eq(AuthorsTable.id, id))
+                break;
+            }
+            case GetOneType.Borrowing: {
+                items = await this.db.select().from(BorrowingsTable).where(eq(BorrowingsTable.id, id))
                 break;
             }
             case GetOneType.Reservation: {

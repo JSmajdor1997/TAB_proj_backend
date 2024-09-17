@@ -6,4 +6,5 @@ export enum GetOneType {
     BookItem = "BookItem",
     Book = "Book",
     Reservation = "Reservation",
+    Borrowing = "Borrowing",
 }
