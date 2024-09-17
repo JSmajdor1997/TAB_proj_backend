@@ -109,11 +109,11 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                     //parsing data if any
                     let parsedParams: (BodySchema extends ZodType<any, any, any> ? z.infer<BodySchema> : {}) & (QuerySchema extends ZodType<any, any, any> ? z.infer<QuerySchema> : {})
                     try {
-                        pathHandlerLogger.log(LogLevel.Info, `raw body params = ${JSON.stringify(req.body)}`)
-                        pathHandlerLogger.log(LogLevel.Info, `raw path params = ${JSON.stringify(req.query)}`)
+                        pathHandlerLogger.log(LogLevel.Info, `raw body params = ${JSON.stringify(req.body, JSONHelpers.stringify)}`)
+                        pathHandlerLogger.log(LogLevel.Info, `raw path params = ${JSON.stringify(req.query, JSONHelpers.stringify)}`)
 
-                        const parsedBody = bodySchema?.parse(req.body) ?? {}
-                        const parsedQuery = querySchema?.parse(req.query) ?? {}
+                        const parsedBody = bodySchema?.parse(JSON.parse(JSON.stringify(req.body, JSONHelpers.stringify), JSONHelpers.parse)) ?? {}
+                        const parsedQuery = querySchema?.parse(JSON.parse(JSON.stringify(req.params, JSONHelpers.stringify), JSONHelpers.parse)) ?? {}
 
                         parsedParams = {
                             ...parsedBody,
@@ -136,31 +136,31 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                 user: null,
                                 async login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null> {
                                     pathHandlerLogger.log(LogLevel.Info, `Requested login`)
-    
+
                                     const getter = userType == AuthLevel.Librarian ?
                                         api.getLibrarian :
                                         api.getStudent
-    
+
                                     return getter({ email, password }).then(user => {
                                         if (user == null) {
                                             pathHandlerLogger.log(LogLevel.Error, `Invalid auth provided`)
-    
+
                                             return null
                                         }
-    
+
                                         const token = jwt.sign({ id: user.id, userType }, SECRET_ACCESS_TOKEN, {
                                             expiresIn: '24h',
                                         });
-    
+
                                         res.cookie("jwt", token, {
                                             maxAge: Period.Day, // would expire in 24hours
                                             httpOnly: true, // The cookie is only accessible by the web server
                                             secure: true,
                                             sameSite: "none"
                                         })
-    
+
                                         pathHandlerLogger.log(LogLevel.Success, `Valid auth provided | logged in`)
-    
+
                                         return user
                                     }) as any
                                 }
@@ -171,20 +171,20 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                 },
                                 async logout() {
                                     pathHandlerLogger.log(LogLevel.Info, `Logout requested`)
-    
+
                                     try {
                                         const jwt = req.cookies?.jwt
                                         if (jwt == null) {
                                             pathHandlerLogger.log(LogLevel.CriticalError, `User not logged in, aborting`)
-    
+
                                             return false
                                         }
-    
+
                                         res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true })
-                                        res.clearCookie('jwt', {sameSite: "none", httpOnly: true, secure: true })
-    
+                                        res.clearCookie('jwt', { sameSite: "none", httpOnly: true, secure: true })
+
                                         pathHandlerLogger.log(LogLevel.Success, `Logout successful`)
-    
+
                                         return true
                                     } catch (err) {
                                         return false
@@ -199,10 +199,10 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                         })
 
                         if (result.data != null) {
-                            res.set("Access-Control-Expose-Headers","Authorization")
-    
+                            res.set("Access-Control-Expose-Headers", "Authorization")
+
                             console.log(await result.data)
-    
+
                             res.status(StatusCode.SuccessOK).send(JSON.stringify(await result.data, JSONHelpers.stringify))
                         } else {
                             res.status(result.error?.code as number).send({
@@ -210,7 +210,7 @@ export default function createRoute<Path extends string, AuthLevelType extends A
                                 customCode: result.error?.customCode
                             })
                         }
-                    } catch(exc: any) {
+                    } catch (exc: any) {
                         logger.log(LogLevel.CriticalError, exc.toString())
 
                         res.status(500).send({

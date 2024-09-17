@@ -4,4 +4,6 @@ export enum GetOneType {
     Librarian = "Librarian",
     Student = "Student",
     BookItem = "BookItem",
+    Book = "Book",
+    Reservation = "Reservation",
 }

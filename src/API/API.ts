@@ -1,4 +1,4 @@
-import { SQL, and, desc, eq, isNull, not, or, sql } from "drizzle-orm";
+import { SQL, and, desc, eq, isNotNull, isNull, not, or, sql } from "drizzle-orm";
 import DB from "../DB/DB";
 import { Librarian, LibrariansTable, NewLibrarian } from "../DB/schema/LibrariansTable";
 import Logger from "../Logger/Logger";
@@ -13,7 +13,6 @@ import { GetOneType } from "./params/GetOne";
 import { GetManyQuery, GetManyType } from "./params/GetMany";
 import { Borrowing, BorrowingsTable } from "../DB/schema/BorrowingsTable";
 import { Reservation, ReservationsTable } from "../DB/schema/ReservationsTable";
-import { equal } from "assert";
 import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
 import { AuthorsBooksTable } from "../DB/schema/AuthorsBooksTable";
 import { Author, AuthorsTable } from "../DB/schema/AuthorsTable";
@@ -188,7 +187,7 @@ export default class API {
     }
 
     readonly cancelReservation = async (reservationId: number): Promise<APIResponse<{}>> => {
-        await this.db.update(ReservationsTable).set({ status: "canceled" })
+        await this.db.update(ReservationsTable).set({ status: "canceled" }).where(eq(ReservationsTable.id, reservationId))
 
         return { data: {} }
     }
@@ -380,6 +379,8 @@ export default class API {
         T extends GetOneType.Librarian ? Librarian :
         T extends GetOneType.Student ? Student :
         T extends GetOneType.BookItem ? Student :
+        T extends GetOneType.Book ? Book :
+        T extends GetOneType.Reservation ? Reservation :
         never
     )>> => {
         let items: any[]
@@ -387,6 +388,10 @@ export default class API {
         switch (type) {
             case GetOneType.Author: {
                 items = await this.db.select().from(AuthorsTable).where(eq(AuthorsTable.id, id))
+                break;
+            }
+            case GetOneType.Reservation: {
+                items = await this.db.select().from(ReservationsTable).where(eq(ReservationsTable.id, id))
                 break;
             }
             case GetOneType.Genre: {
@@ -401,13 +406,18 @@ export default class API {
                 items = await this.db.select().from(StudentsTable).where(eq(StudentsTable.id, id))
                 break;
             }
+            case GetOneType.Book: {
+                items = await this.db.select().from(BooksTable).where(eq(BooksTable.id, id))
+                break;
+            }
             case GetOneType.BookItem: {
                 items = await this.db.select({
                     bookItem: BookItemsTable,
                     language: LanguagesTable,
                     location: LocationsTable,
                     author: AuthorsTable,
-                    genre: GenresTable
+                    genre: GenresTable,
+                    book: BooksTable
                 })
                     .from(BookItemsTable)
                     .leftJoin(LanguagesTable, eq(BookItemsTable.languageId, LanguagesTable.id))
@@ -416,6 +426,7 @@ export default class API {
                     .leftJoin(AuthorsTable, eq(AuthorsBooksTable.authorId, AuthorsTable.id))
                     .leftJoin(BooksGenresTable, eq(BookItemsTable.bookId, BooksGenresTable.bookId))
                     .leftJoin(GenresTable, eq(BooksGenresTable.genreId, GenresTable.id))
+                    .leftJoin(BooksTable, eq(BookItemsTable.bookId, BooksTable.id))
                     .where(eq(BookItemsTable.ean, id));
 
                 // Aggregate authors and genres into arrays
@@ -423,6 +434,7 @@ export default class API {
                     if (!acc[item.bookItem.ean]) {
                         acc[item.bookItem.ean] = {
                             ...item.bookItem,
+                            book: item.book,
                             language: item.language,
                             location: item.location,
                             authors: [],
@@ -487,7 +499,7 @@ export default class API {
             case GetManyType.BookItems: {
                 const q = query as GetManyQuery<GetManyType.BookItems>;
 
-                // Base select query with additional isBorrowed field
+                // Base select query with additional isBorrowed field using a subquery
                 sqlQuery = this.db.selectDistinct({
                     ean: BookItemsTable.ean,
                     ISBN: BookItemsTable.isbn,
@@ -496,17 +508,32 @@ export default class API {
                     language_id: BookItemsTable.languageId,
                     book_id: BooksTable.id,
                     book_title: BooksTable.title,
-                    isBorrowed: sql`CASE WHEN ${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL THEN TRUE ELSE FALSE END`.as('isBorrowed')
+                    isBorrowed: sql`
+            EXISTS (
+                SELECT 1
+                FROM ${BorrowingsTable}
+                WHERE ${BorrowingsTable.bookItemEan} = ${BookItemsTable.ean}
+                  AND ${BorrowingsTable.returnDate} IS NULL
+            )`.as('isBorrowed')
                 })
                     .from(BookItemsTable)
-                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId))
-                    .leftJoin(BorrowingsTable, eq(BookItemsTable.ean, BorrowingsTable.bookItemEan))
+                    .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId));
 
                 // Apply the isBorrowed filter if it's defined
                 if (typeof q.isBorrowed === "boolean") {
                     const isBorrowedCondition = q.isBorrowed
-                        ? sql`${BorrowingsTable.id} IS NOT NULL AND ${BorrowingsTable.returnDate} IS NULL`
-                        : sql`${BorrowingsTable.id} IS NULL OR ${BorrowingsTable.returnDate} IS NOT NULL`;
+                        ? sql`EXISTS (
+                    SELECT 1
+                    FROM ${BorrowingsTable}
+                    WHERE ${BorrowingsTable.bookItemEan} = ${BookItemsTable.ean}
+                      AND ${BorrowingsTable.returnDate} IS NULL
+                )`
+                        : sql`NOT EXISTS (
+                    SELECT 1
+                    FROM ${BorrowingsTable}
+                    WHERE ${BorrowingsTable.bookItemEan} = ${BookItemsTable.ean}
+                      AND ${BorrowingsTable.returnDate} IS NULL
+                )`;
 
                     sqlQuery = sqlQuery.where(isBorrowedCondition);
                 }
@@ -524,6 +551,7 @@ export default class API {
                 if (typeof q.languageId == "number") {
                     sqlQuery = sqlQuery.where(eq(BookItemsTable.languageId, q.languageId));
                 }
+
                 break;
             }
             case GetManyType.Books: {
@@ -546,15 +574,35 @@ export default class API {
                     borrowingDate: BorrowingsTable.borrowingDate,
                     returnDate: BorrowingsTable.returnDate,
                     paidFee: BorrowingsTable.paidFee,
-                    librarian: LibrariansTable
+                    // Explicitly select non-sensitive fields from LibrariansTable
+                    librarian: {
+                        id: LibrariansTable.id,
+                        name: LibrariansTable.name,
+                        email: LibrariansTable.email,
+                        surname: LibrariansTable.surname,
+                    }
                 })
                     .from(BorrowingsTable)
-                    .innerJoin(LibrariansTable, eq(BorrowingsTable.librarianId, LibrariansTable.id))
+                    .innerJoin(LibrariansTable, eq(BorrowingsTable.librarianId, LibrariansTable.id));
 
-                if (q.studentId != undefined) {
-                    sqlQuery = sqlQuery.where(eq(BorrowingsTable.studentId, q.studentId));
+                const conditions = []
+
+                if (typeof q.studentId == "number") {
+                    conditions.push(eq(BorrowingsTable.studentId, q.studentId));
                 }
 
+                if (typeof q.returned == "boolean") {
+                    if(q.returned) {
+                        conditions.push(isNotNull(BorrowingsTable.returnDate));
+                    } else {
+                        conditions.push(isNull(BorrowingsTable.returnDate));
+                    }
+                }
+
+                if (conditions.length > 0) {
+                    sqlQuery = sqlQuery.where(and(...conditions));
+                }
+            
                 break;
             }
             case GetManyType.Fees: {
@@ -584,12 +632,18 @@ export default class API {
                 const q = query as GetManyQuery<GetManyType.Reservations>;
                 sqlQuery = this.db.select().from(ReservationsTable);
 
-                if (q.studentId != undefined) {
-                    sqlQuery = sqlQuery.where(eq(ReservationsTable.studentId, q.studentId));
+                const conditions = []
+
+                if (typeof q.studentId === "number") {
+                    conditions.push(eq(ReservationsTable.studentId, q.studentId));
                 }
 
-                if (q.status) {
-                    sqlQuery = sqlQuery.where(eq(ReservationsTable.status, q.status));
+                if (typeof q.status === "string") {
+                    conditions.push(eq(ReservationsTable.status, q.status));
+                }
+
+                if (conditions.length > 0) {
+                    sqlQuery = sqlQuery.where(and(...conditions));
                 }
                 break;
             }

@@ -17,10 +17,12 @@ import fs from "fs"
 import https from "https"
 import { Books_CancelReservation_Route, Books_Lend_Route, Books_Reserve_Route, Books_Return_Route } from "./routes/books";
 import { CreateOneAction_Path, DeleteOneAction_Path, UpdateOneAction_Path, GetManyAction_Path, GetOneAction_Path } from "./routes/crud";
-import testFrontend from "./testFrontEnd";
 import JSONHelpers from "./utils/JSONHelpers";
+import { faker } from "@faker-js/faker";
 
 dotenv.config();
+
+faker.seed(0)
 
 async function main() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
