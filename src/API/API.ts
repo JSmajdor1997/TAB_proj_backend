@@ -22,6 +22,7 @@ import { Genre, GenresTable } from "../DB/schema/GenresTable";
 import { Book, BooksTable } from "../DB/schema/BooksTable";
 import { Fee, FeesTable } from "../DB/schema/FeesTable";
 import { BooksGenresTable } from "../DB/schema/BooksGenresTable";
+import { ReportsTable } from "../DB/schema/ReportsTable";
 
 export type APIResponse<DataType> = {
     data: DataType
@@ -382,6 +383,7 @@ export default class API {
         T extends GetOneType.Book ? Book :
         T extends GetOneType.Reservation ? Reservation :
         T extends GetOneType.Borrowing ? Borrowing :
+        T extends GetOneType.Report ? Report :
         never
     )>> => {
         let items: any[]
@@ -389,6 +391,10 @@ export default class API {
         switch (type) {
             case GetOneType.Author: {
                 items = await this.db.select().from(AuthorsTable).where(eq(AuthorsTable.id, id))
+                break;
+            }
+            case GetOneType.Report: {
+                items = await this.db.select().from(ReportsTable).where(eq(ReportsTable.id, id));
                 break;
             }
             case GetOneType.Borrowing: {
@@ -483,6 +489,7 @@ export default class API {
             T extends GetManyType.Locations ? Location :
             T extends GetManyType.Reservations ? Reservation :
             T extends GetManyType.Students ? Student :
+            T extends GetManyType.Reports ? Report :
             never
         )[],
         totalAmount: number
@@ -499,6 +506,11 @@ export default class API {
                         sql`to_tsvector('english', ${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
                     );
                 }
+                break;
+            }
+            case GetManyType.Reports: {
+                sqlQuery = this.db.select().from(ReportsTable);
+
                 break;
             }
             case GetManyType.BookItems: {

@@ -10,7 +10,8 @@ export enum GetManyType {
     Librarians = "Librarians",
     Locations = "Locations",
     Reservations = "Reservations",
-    Students = "Students"
+    Students = "Students",
+    Reports = "Reports",
 }
 
 export type GetManyQuery<T extends GetManyType> = (
@@ -24,5 +25,6 @@ export type GetManyQuery<T extends GetManyType> = (
     T extends GetManyType.Locations ? {} :
     T extends GetManyType.Reservations ? { status: ReservationStatus, studentId: number | null } :
     T extends GetManyType.Students ? { phrase?: string } :
+    T extends GetManyType.Reports ? { } :
     never
 )

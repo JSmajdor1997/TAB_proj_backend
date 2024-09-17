@@ -27,7 +27,6 @@ faker.seed(0)
 async function main() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-
     const logger = new Logger(["server"])
 
     logger.log(LogLevel.Info, "console test")

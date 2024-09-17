@@ -7,9 +7,9 @@ export const ReservationStatusEnums = pgEnum('reservation_status', ['active', 'c
 
 export const ReservationsTable = pgTable("reservations", {
     id: serial('id').primaryKey(),
-    bookId: integer("book_id").references(() => BooksTable.id).notNull(),
+    bookId: integer("book_id").references(() => BooksTable.id, {onDelete: "cascade", onUpdate: "cascade"}).notNull(),
     date: date("date", { mode: "date" }).notNull(),
-    studentId: integer("student_id").references(() => StudentsTable.id).notNull(),
+    studentId: integer("student_id").references(() => StudentsTable.id, {onDelete: "cascade", onUpdate: "cascade"}).notNull(),
     status: ReservationStatusEnums("status").notNull().default("active")
 })
 

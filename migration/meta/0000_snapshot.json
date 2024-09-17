@@ -1,5 +1,5 @@
 {
-  "id": "fa2843de-51ee-4e18-9b04-e5142c304abe",
+  "id": "c56c18f2-f372-4b0f-9912-ac4d9843f64d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "6",
   "dialect": "postgresql",
@@ -276,13 +276,21 @@
           "name": "borrowing_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "return_date": {
+          "name": "return_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "NULL"
         },
         "paid_fee": {
           "name": "paid_fee",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "NULL"
         }
       },
       "indexes": {},
@@ -504,60 +512,6 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.messages": {
-      "name": "messages",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "date": {
-          "name": "date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "content": {
-          "name": "content",
-          "type": "varchar(512)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_from_librarian": {
-          "name": "is_from_librarian",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "messages_student_id_students_id_fk": {
-          "name": "messages_student_id_students_id_fk",
-          "tableFrom": "messages",
-          "tableTo": "students",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
     "public.reservations": {
       "name": "reservations",
       "schema": "",
@@ -591,7 +545,8 @@
           "type": "reservation_status",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "'active'"
         }
       },
       "indexes": {},
@@ -666,6 +621,18 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -685,7 +652,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "students_email_unique": {
+          "name": "students_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      }
     }
   },
   "enums": {
