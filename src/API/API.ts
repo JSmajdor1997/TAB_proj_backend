@@ -519,7 +519,8 @@ export default class API {
                     .from(BookItemsTable)
                     .innerJoin(BooksTable, eq(BooksTable.id, BookItemsTable.bookId));
 
-                // Apply the isBorrowed filter if it's defined
+                const conditions = []
+
                 if (typeof q.isBorrowed === "boolean") {
                     const isBorrowedCondition = q.isBorrowed
                         ? sql`EXISTS (
@@ -534,22 +535,25 @@ export default class API {
                     WHERE ${BorrowingsTable.bookItemEan} = ${BookItemsTable.ean}
                       AND ${BorrowingsTable.returnDate} IS NULL
                 )`;
-
-                    sqlQuery = sqlQuery.where(isBorrowedCondition);
+                    conditions.push(isBorrowedCondition);
                 }
 
                 // Apply search by phrase if provided
                 if (typeof q.phrase == "string") {
-                    sqlQuery = sqlQuery.where(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`);
+                    conditions.push(sql`${BooksTable.title} ILIKE ${`%${q.phrase}%`}`)
                 }
 
                 if (typeof q.bookId == "number") {
-                    sqlQuery = sqlQuery.where(eq(BookItemsTable.bookId, q.bookId));
+                    conditions.push(eq(BookItemsTable.bookId, q.bookId))
                 }
 
                 // Filter by language ID if provided
                 if (typeof q.languageId == "number") {
-                    sqlQuery = sqlQuery.where(eq(BookItemsTable.languageId, q.languageId));
+                    conditions.push(eq(BookItemsTable.languageId, q.languageId))
+                }
+
+                if (conditions.length > 0) {
+                    sqlQuery = sqlQuery.where(and(...conditions));
                 }
 
                 break;
