@@ -10,4 +10,5 @@ var UpdateOneType;
     UpdateOneType["Genre"] = "Genre";
     UpdateOneType["Language"] = "Language";
     UpdateOneType["Location"] = "Location";
+    UpdateOneType["Student"] = "Student";
 })(UpdateOneType || (exports.UpdateOneType = UpdateOneType = {}));

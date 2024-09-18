@@ -71,8 +71,10 @@ function createRoute(path, { bodySchema, querySchema, handler, method, authLevel
                         //parsing data if any
                         let parsedParams;
                         try {
-                            const parsedBody = (_a = bodySchema === null || bodySchema === void 0 ? void 0 : bodySchema.parse(req.body)) !== null && _a !== void 0 ? _a : {};
-                            const parsedQuery = (_b = querySchema === null || querySchema === void 0 ? void 0 : querySchema.parse(req.query)) !== null && _b !== void 0 ? _b : {};
+                            pathHandlerLogger.log(LogLevel_1.default.Info, `raw body params = ${JSON.stringify(req.body, JSONHelpers_1.default.stringify)}`);
+                            pathHandlerLogger.log(LogLevel_1.default.Info, `raw path params = ${JSON.stringify(req.query, JSONHelpers_1.default.stringify)}`);
+                            const parsedBody = (_a = bodySchema === null || bodySchema === void 0 ? void 0 : bodySchema.parse(JSON.parse(JSON.stringify(req.body, JSONHelpers_1.default.stringify), JSONHelpers_1.default.parse))) !== null && _a !== void 0 ? _a : {};
+                            const parsedQuery = (_b = querySchema === null || querySchema === void 0 ? void 0 : querySchema.parse(JSON.parse(JSON.stringify(req.params, JSONHelpers_1.default.stringify), JSONHelpers_1.default.parse))) !== null && _b !== void 0 ? _b : {};
                             parsedParams = Object.assign(Object.assign({}, parsedBody), parsedQuery);
                         }
                         catch (exc) {
@@ -81,82 +83,84 @@ function createRoute(path, { bodySchema, querySchema, handler, method, authLevel
                                 .status(StatusCode_1.default.ClientErrorBadRequest)
                                 .json({ message: "Invalid parameters provided" });
                         }
-                        const result = yield handler({
-                            params: parsedParams,
-                            api,
-                            pathsParams: req.params,
-                            user: loggedInUser == null ? {
-                                user: null,
-                                login(userType, email, password) {
-                                    return __awaiter(this, void 0, void 0, function* () {
-                                        pathHandlerLogger.log(LogLevel_1.default.Info, `Requested login`);
-                                        // user: AuthLevelType extends AuthLevel.None ? {
-                                        //     user: null,
-                                        //     login<T extends AuthLevel.Librarian | AuthLevel.Student>(userType: T, email: string, password: string): Promise<(T extends AuthLevel.Librarian ? Librarian : Student) | null>
-                                        // } : {
-                                        //     user: Librarian | Student,
-                                        //     logout(): Promise<boolean>
-                                        // },
-                                        const getter = userType == AuthLevel_1.AuthLevel.Librarian ?
-                                            api.getLibrarian :
-                                            api.getStudent;
-                                        return getter({ email, password }).then(user => {
-                                            if (user == null) {
-                                                pathHandlerLogger.log(LogLevel_1.default.Error, `Invalid auth provided`);
-                                                return null;
-                                            }
-                                            const token = jsonwebtoken_1.default.sign({ id: user.id, userType }, SECRET_ACCESS_TOKEN, {
-                                                expiresIn: '24h',
+                        try {
+                            const result = yield handler({
+                                params: parsedParams,
+                                api,
+                                pathsParams: req.params,
+                                user: loggedInUser == null ? {
+                                    user: null,
+                                    login(userType, email, password) {
+                                        return __awaiter(this, void 0, void 0, function* () {
+                                            pathHandlerLogger.log(LogLevel_1.default.Info, `Requested login`);
+                                            const getter = userType == AuthLevel_1.AuthLevel.Librarian ?
+                                                api.getLibrarian :
+                                                api.getStudent;
+                                            return getter({ email, password }).then(user => {
+                                                if (user == null) {
+                                                    pathHandlerLogger.log(LogLevel_1.default.Error, `Invalid auth provided`);
+                                                    return null;
+                                                }
+                                                const token = jsonwebtoken_1.default.sign({ id: user.id, userType }, SECRET_ACCESS_TOKEN, {
+                                                    expiresIn: '24h',
+                                                });
+                                                res.cookie("jwt", token, {
+                                                    maxAge: Period_1.default.Day, // would expire in 24hours
+                                                    httpOnly: true, // The cookie is only accessible by the web server
+                                                    secure: true,
+                                                    sameSite: "none"
+                                                });
+                                                pathHandlerLogger.log(LogLevel_1.default.Success, `Valid auth provided | logged in`);
+                                                return user;
                                             });
-                                            res.cookie("jwt", token, {
-                                                maxAge: Period_1.default.Day, // would expire in 24hours
-                                                httpOnly: true, // The cookie is only accessible by the web server
-                                                secure: true,
-                                                sameSite: "none"
-                                            });
-                                            pathHandlerLogger.log(LogLevel_1.default.Success, `Valid auth provided | logged in`);
-                                            return user;
                                         });
-                                    });
-                                }
-                            } : {
-                                user: Object.assign(Object.assign({}, loggedInUser), { userType: (0, isLibrarian_1.default)(loggedInUser) ? AuthLevel_1.AuthLevel.Librarian : AuthLevel_1.AuthLevel.Student }),
-                                logout() {
-                                    return __awaiter(this, void 0, void 0, function* () {
-                                        var _a;
-                                        pathHandlerLogger.log(LogLevel_1.default.Info, `Logout requested`);
-                                        try {
-                                            const jwt = (_a = req.cookies) === null || _a === void 0 ? void 0 : _a.jwt;
-                                            if (jwt == null) {
-                                                pathHandlerLogger.log(LogLevel_1.default.CriticalError, `User not logged in, aborting`);
+                                    }
+                                } : {
+                                    user: Object.assign(Object.assign({}, loggedInUser), { userType: (0, isLibrarian_1.default)(loggedInUser) ? AuthLevel_1.AuthLevel.Librarian : AuthLevel_1.AuthLevel.Student }),
+                                    logout() {
+                                        return __awaiter(this, void 0, void 0, function* () {
+                                            var _a;
+                                            pathHandlerLogger.log(LogLevel_1.default.Info, `Logout requested`);
+                                            try {
+                                                const jwt = (_a = req.cookies) === null || _a === void 0 ? void 0 : _a.jwt;
+                                                if (jwt == null) {
+                                                    pathHandlerLogger.log(LogLevel_1.default.CriticalError, `User not logged in, aborting`);
+                                                    return false;
+                                                }
+                                                res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true });
+                                                res.clearCookie('jwt', { sameSite: "none", httpOnly: true, secure: true });
+                                                pathHandlerLogger.log(LogLevel_1.default.Success, `Logout successful`);
+                                                return true;
+                                            }
+                                            catch (err) {
                                                 return false;
                                             }
-                                            res.cookie('jwt', '', { maxAge: 1, sameSite: "none", httpOnly: true, secure: true });
-                                            res.clearCookie('jwt', { sameSite: "none", httpOnly: true, secure: true });
-                                            pathHandlerLogger.log(LogLevel_1.default.Success, `Logout successful`);
-                                            return true;
-                                        }
-                                        catch (err) {
-                                            return false;
-                                        }
-                                    });
+                                        });
+                                    }
+                                },
+                                logger: pathHandlerLogger,
+                                _native: {
+                                    req,
+                                    res
                                 }
-                            },
-                            logger: pathHandlerLogger,
-                            _native: {
-                                req,
-                                res
+                            });
+                            if (result.data != null) {
+                                res.set("Access-Control-Expose-Headers", "Authorization");
+                                console.log(yield result.data);
+                                res.status(StatusCode_1.default.SuccessOK).send(JSON.stringify(yield result.data, JSONHelpers_1.default.stringify));
                             }
-                        });
-                        if (result.data != null) {
-                            res.set("Access-Control-Expose-Headers", "Authorization");
-                            console.log(yield result.data);
-                            res.status(StatusCode_1.default.SuccessOK).send(JSON.stringify(yield result.data, JSONHelpers_1.default.stringify));
+                            else {
+                                res.status((_c = result.error) === null || _c === void 0 ? void 0 : _c.code).send({
+                                    message: (_d = result.error) === null || _d === void 0 ? void 0 : _d.message,
+                                    customCode: (_e = result.error) === null || _e === void 0 ? void 0 : _e.customCode
+                                });
+                            }
                         }
-                        else {
-                            res.status((_c = result.error) === null || _c === void 0 ? void 0 : _c.code).send({
-                                message: (_d = result.error) === null || _d === void 0 ? void 0 : _d.message,
-                                customCode: (_e = result.error) === null || _e === void 0 ? void 0 : _e.customCode
+                        catch (exc) {
+                            logger.log(LogLevel_1.default.CriticalError, exc.toString());
+                            res.status(500).send({
+                                message: "Unexpected error occurred!",
+                                customCode: -1
                             });
                         }
                     });

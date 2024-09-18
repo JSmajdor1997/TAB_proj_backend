@@ -10,4 +10,6 @@ var CreateOneType;
     CreateOneType["Language"] = "Language";
     CreateOneType["Librarian"] = "Librarian";
     CreateOneType["Location"] = "Location";
+    CreateOneType["Student"] = "Student";
+    CreateOneType["Report"] = "Report";
 })(CreateOneType || (exports.CreateOneType = CreateOneType = {}));

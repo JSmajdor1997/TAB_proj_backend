@@ -13,12 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetOneAction_Path = exports.GetManyAction_Path = exports.UpdateOneAction_Path = exports.DeleteOneAction_Path = exports.CreateOneAction_Path = void 0;
+const drizzle_zod_1 = require("drizzle-zod");
 const zod_1 = require("zod");
 const GetMany_1 = require("../API/params/GetMany");
-const AuthLevel_1 = require("./createRoute/AuthLevel");
-const Method_1 = require("./createRoute/Method");
-const createRoute_1 = __importDefault(require("./createRoute/createRoute"));
-const drizzle_zod_1 = require("drizzle-zod");
 const AuthorsTable_1 = require("../DB/schema/AuthorsTable");
 const BookItemsTable_1 = require("../DB/schema/BookItemsTable");
 const BooksTable_1 = require("../DB/schema/BooksTable");
@@ -26,11 +23,17 @@ const GenresTable_1 = require("../DB/schema/GenresTable");
 const LanguagesTable_1 = require("../DB/schema/LanguagesTable");
 const LibrariansTable_1 = require("../DB/schema/LibrariansTable");
 const LocationsTable_1 = require("../DB/schema/LocationsTable");
+const StudentsTable_1 = require("../DB/schema/StudentsTable");
+const AuthLevel_1 = require("./createRoute/AuthLevel");
+const Method_1 = require("./createRoute/Method");
+const createRoute_1 = __importDefault(require("./createRoute/createRoute"));
+const GetOne_1 = require("../API/params/GetOne");
 exports.CreateOneAction_Path = (0, createRoute_1.default)("/crud/:objectType/create-one", {
     method: Method_1.Method.POST,
     authLevel: AuthLevel_1.AuthLevel.Librarian,
     bodySchema: zod_1.z.object({
         item: zod_1.z.union([
+            (0, drizzle_zod_1.createInsertSchema)(StudentsTable_1.StudentsTable),
             (0, drizzle_zod_1.createInsertSchema)(AuthorsTable_1.AuthorsTable),
             (0, drizzle_zod_1.createInsertSchema)(LocationsTable_1.LocationsTable),
             (0, drizzle_zod_1.createInsertSchema)(LibrariansTable_1.LibrariansTable),
@@ -83,7 +86,7 @@ exports.GetManyAction_Path = (0, createRoute_1.default)("/crud/:objectType/get-m
     }),
     querySchema: undefined,
     handler: (_d) => __awaiter(void 0, [_d], void 0, function* ({ api, pathsParams, user, params: { range, query } }) {
-        if (user.user.userType == AuthLevel_1.AuthLevel.Student && ![GetMany_1.GetManyType.BookItems, GetMany_1.GetManyType.Books, GetMany_1.GetManyType.Borrowings].includes(pathsParams.objectType)) {
+        if (user.user.userType == AuthLevel_1.AuthLevel.Student && ![GetMany_1.GetManyType.BookItems, GetMany_1.GetManyType.Authors, GetMany_1.GetManyType.Languages, GetMany_1.GetManyType.Genres, GetMany_1.GetManyType.Books, GetMany_1.GetManyType.Borrowings, GetMany_1.GetManyType.Reservations].includes(pathsParams.objectType)) {
             return {
                 error: {
                     code: 400,
@@ -92,7 +95,7 @@ exports.GetManyAction_Path = (0, createRoute_1.default)("/crud/:objectType/get-m
                 }
             };
         }
-        if (pathsParams.objectType === GetMany_1.GetManyType.Borrowings && user.user.userType == AuthLevel_1.AuthLevel.Student) {
+        if ([GetMany_1.GetManyType.Borrowings, GetMany_1.GetManyType.Reservations].includes(pathsParams.objectType) && user.user.userType == AuthLevel_1.AuthLevel.Student) {
             const q = query;
             if (q.studentId !== user.user.id) {
                 return {
@@ -111,12 +114,33 @@ exports.GetManyAction_Path = (0, createRoute_1.default)("/crud/:objectType/get-m
 });
 exports.GetOneAction_Path = (0, createRoute_1.default)("/crud/:objectType/get-one", {
     method: Method_1.Method.POST,
-    authLevel: AuthLevel_1.AuthLevel.Librarian,
+    authLevel: AuthLevel_1.AuthLevel.AnyAuthorized,
     bodySchema: zod_1.z.object({
         id: zod_1.z.number()
     }),
     querySchema: undefined,
-    handler: (_e) => __awaiter(void 0, [_e], void 0, function* ({ api, pathsParams, params: { id } }) {
+    handler: (_e) => __awaiter(void 0, [_e], void 0, function* ({ api, pathsParams, user, params: { id } }) {
+        if (user.user.userType == AuthLevel_1.AuthLevel.Student && ![GetOne_1.GetOneType.BookItem, GetOne_1.GetOneType.Author, GetOne_1.GetOneType.Genre, GetOne_1.GetOneType.Book, GetOne_1.GetOneType.Borrowing, GetOne_1.GetOneType.Reservation].includes(pathsParams.objectType)) {
+            return {
+                error: {
+                    code: 400,
+                    message: "Not authorized",
+                    customCode: "chciałoby się"
+                }
+            };
+        }
+        if ([GetOne_1.GetOneType.Reservation, GetOne_1.GetOneType.Borrowing].includes(pathsParams.objectType)) {
+            const item = yield api.getOne(GetOne_1.GetOneType.Reservation, id);
+            if (item.error == null || item.data.studentId != user.user.id) {
+                return {
+                    error: {
+                        code: 400,
+                        message: "Not authorized",
+                        customCode: "chciałoby się"
+                    }
+                };
+            }
+        }
         return {
             data: api.getOne(pathsParams.objectType, id)
         };

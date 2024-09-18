@@ -13,4 +13,7 @@ var GetManyType;
     GetManyType["Locations"] = "Locations";
     GetManyType["Reservations"] = "Reservations";
     GetManyType["Students"] = "Students";
+    GetManyType["Reports"] = "Reports";
+    GetManyType["Genres"] = "Reports";
+    GetManyType["Classes"] = "Classes";
 })(GetManyType || (exports.GetManyType = GetManyType = {}));

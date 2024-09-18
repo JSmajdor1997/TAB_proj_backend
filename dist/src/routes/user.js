@@ -98,6 +98,7 @@ exports.User_Login_Route = (0, createRoute_1.default)("/user/login", {
     querySchema: undefined,
     handler(_a) {
         return __awaiter(this, arguments, void 0, function* ({ params, user }) {
+            console.log(params);
             if (user.user != null) {
                 return {
                     error: {

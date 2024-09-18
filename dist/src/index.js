@@ -31,7 +31,9 @@ const https_1 = __importDefault(require("https"));
 const books_1 = require("./routes/books");
 const crud_1 = require("./routes/crud");
 const JSONHelpers_1 = __importDefault(require("./utils/JSONHelpers"));
+const faker_1 = require("@faker-js/faker");
 dotenv_1.default.config();
+faker_1.faker.seed(0);
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -46,6 +48,7 @@ function main() {
         const db = env.NODE_ENV == "development" ?
             yield (0, getMockupDB_1.default)() :
             yield (0, getProductionDB_1.default)();
+        logger.log(LogLevel_1.default.Info, env.NODE_ENV);
         const app = (0, express_1.default)();
         app.disable("x-powered-by");
         app.use((0, cors_1.default)({ credentials: true, origin: env.DOMAIN }));
