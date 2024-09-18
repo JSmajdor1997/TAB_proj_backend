@@ -713,7 +713,6 @@ export default class API {
                 if (typeof q.bookId === "number") {
                     sqlQuery = sqlQuery
                         .where(eq(BookItemsTable.bookId, q.bookId))
-                        .distinctOn(LanguagesTable.id);  // Ensuring distinct languages
                 }
             
                 break;
