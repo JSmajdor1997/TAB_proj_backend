@@ -668,7 +668,8 @@ export default class API {
                 })
                     .from(BorrowingsTable)
                     .innerJoin(LibrariansTable, eq(BorrowingsTable.librarianId, LibrariansTable.id))
-                    .innerJoin(ClassesTable, eq(BorrowingsTable.studentId, ClassesTable.id));
+                    .innerJoin(StudentsTable, eq(StudentsTable.id, BorrowingsTable.studentId))
+                    .innerJoin(ClassesTable, eq(StudentsTable.classId, ClassesTable.id));
 
                 const conditions = []
 
