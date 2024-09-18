@@ -653,6 +653,10 @@ export default class API {
                     librarianId: BorrowingsTable.librarianId,
                     borrowingDate: BorrowingsTable.borrowingDate,
                     returnDate: BorrowingsTable.returnDate,
+                    class: {
+                        name: ClassesTable.name,
+                        id: ClassesTable.id,
+                    },
                     paidFee: BorrowingsTable.paidFee,
                     // Explicitly select non-sensitive fields from LibrariansTable
                     librarian: {
