@@ -1,28 +1,28 @@
-import { SQL, and, desc, eq, isNotNull, isNull, not, or, sql } from "drizzle-orm";
+import bcrypt from "bcrypt";
+import { SQL, and, eq, isNotNull, isNull, not, sql } from "drizzle-orm";
 import DB from "../DB/DB";
-import { Librarian, LibrariansTable, NewLibrarian } from "../DB/schema/LibrariansTable";
-import Logger from "../Logger/Logger";
-import bcrypt from "bcrypt"
-import LogLevel from "../Logger/LogLevel";
-import { Student, StudentsTable } from "../DB/schema/StudentsTable";
-import mockupClasses from "../DB/mockup_data/generators/mockupClasses";
-import { CreateOneType, CreateQuery } from "./params/CreateOne";
-import { DeleteOneType } from "./params/DeleteOne";
-import { UpdateOneType, UpdateQuery } from "./params/UpdateOne";
-import { GetOneType } from "./params/GetOne";
-import { GetManyQuery, GetManyType } from "./params/GetMany";
-import { Borrowing, BorrowingsTable } from "../DB/schema/BorrowingsTable";
-import { Reservation, ReservationsTable } from "../DB/schema/ReservationsTable";
-import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
 import { AuthorsBooksTable } from "../DB/schema/AuthorsBooksTable";
 import { Author, AuthorsTable } from "../DB/schema/AuthorsTable";
-import { LocationsTable } from "../DB/schema/LocationsTable";
-import { Language, LanguagesTable } from "../DB/schema/LanguagesTable";
-import { Genre, GenresTable } from "../DB/schema/GenresTable";
-import { Book, BooksTable } from "../DB/schema/BooksTable";
-import { Fee, FeesTable } from "../DB/schema/FeesTable";
+import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
 import { BooksGenresTable } from "../DB/schema/BooksGenresTable";
+import { Book, BooksTable } from "../DB/schema/BooksTable";
+import { Borrowing, BorrowingsTable } from "../DB/schema/BorrowingsTable";
+import { Fee, FeesTable } from "../DB/schema/FeesTable";
+import { Genre, GenresTable } from "../DB/schema/GenresTable";
+import { Language, LanguagesTable } from "../DB/schema/LanguagesTable";
+import { Librarian, LibrariansTable } from "../DB/schema/LibrariansTable";
+import { LocationsTable } from "../DB/schema/LocationsTable";
 import { ReportsTable } from "../DB/schema/ReportsTable";
+import { Reservation, ReservationsTable } from "../DB/schema/ReservationsTable";
+import { Student, StudentsTable } from "../DB/schema/StudentsTable";
+import Logger from "../Logger/Logger";
+import LogLevel from "../Logger/LogLevel";
+import { CreateOneType, CreateQuery } from "./params/CreateOne";
+import { DeleteOneType } from "./params/DeleteOne";
+import { GetManyQuery, GetManyType } from "./params/GetMany";
+import { GetOneType } from "./params/GetOne";
+import { UpdateOneType, UpdateQuery } from "./params/UpdateOne";
+import { Class, ClassesTable } from "../DB/schema/ClassesTable";
 
 export type APIResponse<DataType> = {
     data: DataType
@@ -236,6 +236,13 @@ export default class API {
                     }
                 }))
             }
+            case CreateOneType.Report: {
+                return this.db.insert(ReportsTable).values(obj as CreateQuery<CreateOneType.Report>).returning().then(it => ({
+                    data: {
+                        createdId: it[0].id
+                    }
+                }))
+            }
             case CreateOneType.Book: {
                 return this.db.insert(BooksTable).values(obj as CreateQuery<CreateOneType.Book>).returning().then(it => ({
                     data: {
@@ -384,6 +391,7 @@ export default class API {
         T extends GetOneType.Reservation ? Reservation :
         T extends GetOneType.Borrowing ? Borrowing :
         T extends GetOneType.Report ? Report :
+        T extends GetOneType.Class ? Class :
         never
     )>> => {
         let items: any[]
@@ -391,6 +399,10 @@ export default class API {
         switch (type) {
             case GetOneType.Author: {
                 items = await this.db.select().from(AuthorsTable).where(eq(AuthorsTable.id, id))
+                break;
+            }
+            case GetOneType.Class: {
+                items = await this.db.select().from(ClassesTable).where(eq(ClassesTable.id, id))
                 break;
             }
             case GetOneType.Report: {
@@ -490,6 +502,8 @@ export default class API {
             T extends GetManyType.Reservations ? Reservation :
             T extends GetManyType.Students ? Student :
             T extends GetManyType.Reports ? Report :
+            T extends GetManyType.Genres ? Genre :
+            T extends GetManyType.Classes ? Class :
             never
         )[],
         totalAmount: number
@@ -499,18 +513,63 @@ export default class API {
         switch (type) {
             case GetManyType.Authors: {
                 const q = query as GetManyQuery<GetManyType.Authors>;
-                sqlQuery = this.db.select().from(AuthorsTable);
-
-                if (q.phrase) {
-                    sqlQuery = sqlQuery.where(
-                        sql`to_tsvector('english', ${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
-                    );
+            
+                // Selecting only the columns from AuthorsTable explicitly
+                sqlQuery = this.db.select({
+                    id: AuthorsTable.id,
+                    name: AuthorsTable.name,
+                    surname: AuthorsTable.surname,
+                    birthDate: AuthorsTable.birthDate
+                })
+                .from(AuthorsTable)
+                .innerJoin(AuthorsBooksTable, eq(AuthorsTable.id, AuthorsBooksTable.authorId));  // Joining authors and authors_books table
+            
+                const conditions = [];
+            
+                // Filter by bookId if provided
+                if (typeof q.bookId === "number") {
+                    conditions.push(eq(AuthorsBooksTable.bookId, q.bookId));  // Ensuring only authors of the provided bookId are returned
                 }
+            
+                // Filter by phrase if provided (search by name/surname)
+                if (typeof q.phrase === "string") {
+                    conditions.push(sql`to_tsvector('english', ${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) @@ to_tsquery('english', ${q.phrase})`);
+                }
+            
+                // Apply conditions if any exist
+                if (conditions.length > 0) {
+                    sqlQuery = sqlQuery.where(and(...conditions));
+                }
+            
                 break;
             }
             case GetManyType.Reports: {
-                sqlQuery = this.db.select().from(ReportsTable);
+                sqlQuery = this.db.select({id: ReportsTable.id, startDate: ReportsTable.startDate, endDate: ReportsTable.endDate}).from(ReportsTable);
 
+                break;
+            }
+            case GetManyType.Classes: {
+                sqlQuery = this.db.select().from(ClassesTable);
+
+                break;
+            }
+            case GetManyType.Genres: {
+                const q = query as GetManyQuery<GetManyType.Authors>;
+            
+                // Selecting only the columns from AuthorsTable explicitly
+                sqlQuery = this.db.select({
+                    id: GenresTable.id,
+                    name: GenresTable.name,
+                    description: GenresTable.description
+                })
+                .from(GenresTable)
+                .innerJoin(AuthorsBooksTable, eq(GenresTable.id, BooksGenresTable.genreId));
+            
+                // Filter by bookId if provided
+                if (typeof q.bookId === "number") {
+                    sqlQuery = sqlQuery.where(eq(BooksGenresTable.bookId, q.bookId))
+                }
+            
                 break;
             }
             case GetManyType.BookItems: {
@@ -604,7 +663,8 @@ export default class API {
                     }
                 })
                     .from(BorrowingsTable)
-                    .innerJoin(LibrariansTable, eq(BorrowingsTable.librarianId, LibrariansTable.id));
+                    .innerJoin(LibrariansTable, eq(BorrowingsTable.librarianId, LibrariansTable.id))
+                    .innerJoin(ClassesTable, eq(BorrowingsTable.studentId, ClassesTable.id));
 
                 const conditions = []
 
@@ -631,7 +691,26 @@ export default class API {
                 break;
             }
             case GetManyType.Languages: {
-                sqlQuery = this.db.select().from(LanguagesTable)
+                const q = query as GetManyQuery<GetManyType.Languages>;
+
+                // Base query selecting distinct languages from LanguagesTable
+                sqlQuery = this.db
+                    .select({
+                        id: LanguagesTable.id,
+                        code: LanguagesTable.code,
+                        name: LanguagesTable.name,
+                    })
+                    .from(LanguagesTable)
+                    // Join with BookItemsTable to filter by bookId
+                    .innerJoin(BookItemsTable, eq(BookItemsTable.languageId, LanguagesTable.id));
+            
+                // Filter by bookId if provided
+                if (typeof q.bookId === "number") {
+                    sqlQuery = sqlQuery
+                        .where(eq(BookItemsTable.bookId, q.bookId))
+                        .distinctOn(LanguagesTable.id);  // Ensuring distinct languages
+                }
+            
                 break;
             }
             case GetManyType.Librarians: {

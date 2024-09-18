@@ -20,7 +20,7 @@ export const BookItemsTable = pgTable("book_items", {
         locationIdIndex: index('location_idx').on(table.locationId),
 
         // Index on book_id (BTREE is default in most databases like PostgreSQL)
-        bookIdIndex: index('book_id_idx').on(table.bookId),
+        bookIdIndex: index('book_item_id_idx').on(table.bookId),
     };
 })
 

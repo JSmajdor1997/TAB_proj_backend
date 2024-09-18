@@ -82,6 +82,13 @@ CREATE TABLE IF NOT EXISTS "locations" (
 	"name" varchar(256) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "reports" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"startDate" date NOT NULL,
+	"endDate" date,
+	"content" varchar
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "reservations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"book_id" integer NOT NULL,
@@ -103,79 +110,90 @@ CREATE TABLE IF NOT EXISTS "students" (
 );
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "authors_books" ADD CONSTRAINT "authors_books_author_id_authors_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."authors"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "authors_books" ADD CONSTRAINT "authors_books_author_id_authors_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."authors"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "authors_books" ADD CONSTRAINT "authors_books_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "authors_books" ADD CONSTRAINT "authors_books_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE cascade ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "book_items" ADD CONSTRAINT "book_items_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "book_items" ADD CONSTRAINT "book_items_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE cascade ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "book_items" ADD CONSTRAINT "book_items_location_id_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "book_items" ADD CONSTRAINT "book_items_location_id_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "book_items" ADD CONSTRAINT "book_items_language_id_languages_id_fk" FOREIGN KEY ("language_id") REFERENCES "public"."languages"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "book_items" ADD CONSTRAINT "book_items_language_id_languages_id_fk" FOREIGN KEY ("language_id") REFERENCES "public"."languages"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "books_genres" ADD CONSTRAINT "books_genres_genre_id_authors_id_fk" FOREIGN KEY ("genre_id") REFERENCES "public"."authors"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "books_genres" ADD CONSTRAINT "books_genres_genre_id_authors_id_fk" FOREIGN KEY ("genre_id") REFERENCES "public"."authors"("id") ON DELETE cascade ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "books_genres" ADD CONSTRAINT "books_genres_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "books_genres" ADD CONSTRAINT "books_genres_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE cascade ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "borrowings" ADD CONSTRAINT "borrowings_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "borrowings" ADD CONSTRAINT "borrowings_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "borrowings" ADD CONSTRAINT "borrowings_book_item_ean_book_items_ean_fk" FOREIGN KEY ("book_item_ean") REFERENCES "public"."book_items"("ean") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "borrowings" ADD CONSTRAINT "borrowings_book_item_ean_book_items_ean_fk" FOREIGN KEY ("book_item_ean") REFERENCES "public"."book_items"("ean") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "borrowings" ADD CONSTRAINT "borrowings_librarian_id_librarians_id_fk" FOREIGN KEY ("librarian_id") REFERENCES "public"."librarians"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "borrowings" ADD CONSTRAINT "borrowings_librarian_id_librarians_id_fk" FOREIGN KEY ("librarian_id") REFERENCES "public"."librarians"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "reservations" ADD CONSTRAINT "reservations_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "reservations" ADD CONSTRAINT "reservations_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE cascade ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "reservations" ADD CONSTRAINT "reservations_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "reservations" ADD CONSTRAINT "reservations_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE cascade ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "students" ADD CONSTRAINT "students_class_id_classes_id_fk" FOREIGN KEY ("class_id") REFERENCES "public"."classes"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "students" ADD CONSTRAINT "students_class_id_classes_id_fk" FOREIGN KEY ("class_id") REFERENCES "public"."classes"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "author_idx" ON "authors_books" ("author_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "book_idx" ON "authors_books" ("book_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "language_idx" ON "book_items" ("language_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "location_idx" ON "book_items" ("location_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "book_item_id_idx" ON "book_items" ("book_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "genre_id_idx" ON "books_genres" ("genre_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "book_id_idx" ON "books_genres" ("book_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "student_idx" ON "borrowings" ("student_id","book_item_ean","librarian_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "c1" ON "borrowings" ("book_item_ean");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "c3" ON "borrowings" ("librarian_id");

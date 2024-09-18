@@ -43,6 +43,8 @@ async function main() {
         await getMockupDB() :
         await getProductionDB()
 
+    logger.log(LogLevel.Info, env.NODE_ENV)
+
     const app = express();
     app.disable("x-powered-by");
     app.use(cors({ credentials: true, origin: env.DOMAIN }))

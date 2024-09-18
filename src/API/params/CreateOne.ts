@@ -7,6 +7,7 @@ import { GenresTable } from "../../DB/schema/GenresTable";
 import { BookItemsTable } from "../../DB/schema/BookItemsTable";
 import { BooksTable } from "../../DB/schema/BooksTable";
 import { StudentsTable } from "../../DB/schema/StudentsTable";
+import { ReportsTable } from "../../DB/schema/ReportsTable";
 
 export enum CreateOneType {
     Author = "Author",
@@ -17,6 +18,7 @@ export enum CreateOneType {
     Librarian = "Librarian",
     Location = "Location",
     Student = "Student",
+    Report = "Report",
 }
 
 export type CreateQuery<T extends CreateOneType> = (
@@ -28,5 +30,6 @@ export type CreateQuery<T extends CreateOneType> = (
     T extends CreateOneType.Librarian ? InferInsertModel<typeof LibrariansTable> :
     T extends CreateOneType.Location ? InferInsertModel<typeof LocationsTable> :
     T extends CreateOneType.Student ? InferInsertModel<typeof StudentsTable> :
+    T extends CreateOneType.Report ? InferInsertModel<typeof ReportsTable> :
     never
 )

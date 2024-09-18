@@ -1,5 +1,5 @@
 {
-  "id": "c56c18f2-f372-4b0f-9912-ac4d9843f64d",
+  "id": "3703b640-bda0-46c8-8749-29bfdae6ee26",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "6",
   "dialect": "postgresql",
@@ -21,7 +21,22 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "author_idx": {
+          "name": "author_idx",
+          "columns": [
+            "author_id"
+          ],
+          "isUnique": false
+        },
+        "book_idx": {
+          "name": "book_idx",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "authors_books_author_id_authors_id_fk": {
           "name": "authors_books_author_id_authors_id_fk",
@@ -34,7 +49,7 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         },
         "authors_books_book_id_books_id_fk": {
           "name": "authors_books_book_id_books_id_fk",
@@ -46,8 +61,8 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -128,7 +143,29 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "language_idx": {
+          "name": "language_idx",
+          "columns": [
+            "language_id"
+          ],
+          "isUnique": false
+        },
+        "location_idx": {
+          "name": "location_idx",
+          "columns": [
+            "location_id"
+          ],
+          "isUnique": false
+        },
+        "book_item_id_idx": {
+          "name": "book_item_id_idx",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "book_items_book_id_books_id_fk": {
           "name": "book_items_book_id_books_id_fk",
@@ -140,8 +177,8 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "book_items_location_id_locations_id_fk": {
           "name": "book_items_location_id_locations_id_fk",
@@ -154,7 +191,7 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         },
         "book_items_language_id_languages_id_fk": {
           "name": "book_items_language_id_languages_id_fk",
@@ -167,7 +204,7 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -190,7 +227,22 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "genre_id_idx": {
+          "name": "genre_id_idx",
+          "columns": [
+            "genre_id"
+          ],
+          "isUnique": false
+        },
+        "book_id_idx": {
+          "name": "book_id_idx",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "books_genres_genre_id_authors_id_fk": {
           "name": "books_genres_genre_id_authors_id_fk",
@@ -202,8 +254,8 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "books_genres_book_id_books_id_fk": {
           "name": "books_genres_book_id_books_id_fk",
@@ -215,8 +267,8 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -293,7 +345,31 @@
           "default": "NULL"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "student_idx": {
+          "name": "student_idx",
+          "columns": [
+            "student_id",
+            "book_item_ean",
+            "librarian_id"
+          ],
+          "isUnique": false
+        },
+        "c1": {
+          "name": "c1",
+          "columns": [
+            "book_item_ean"
+          ],
+          "isUnique": false
+        },
+        "c3": {
+          "name": "c3",
+          "columns": [
+            "librarian_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "borrowings_student_id_students_id_fk": {
           "name": "borrowings_student_id_students_id_fk",
@@ -306,7 +382,7 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         },
         "borrowings_book_item_ean_book_items_ean_fk": {
           "name": "borrowings_book_item_ean_book_items_ean_fk",
@@ -319,7 +395,7 @@
             "ean"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         },
         "borrowings_librarian_id_librarians_id_fk": {
           "name": "borrowings_librarian_id_librarians_id_fk",
@@ -332,7 +408,7 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -512,6 +588,40 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "public.reports": {
+      "name": "reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "startDate": {
+          "name": "startDate",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "name": "content",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "public.reservations": {
       "name": "reservations",
       "schema": "",
@@ -561,8 +671,8 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "reservations_student_id_students_id_fk": {
           "name": "reservations_student_id_students_id_fk",
@@ -574,8 +684,8 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -648,7 +758,7 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},

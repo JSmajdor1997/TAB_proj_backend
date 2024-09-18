@@ -12,6 +12,9 @@ import { StudentsTable } from "../DB/schema/StudentsTable"
 import { AuthLevel } from "./createRoute/AuthLevel"
 import { Method } from "./createRoute/Method"
 import createRoute from "./createRoute/createRoute"
+import { GetOneType } from "../API/params/GetOne"
+import { Reservation } from "../DB/schema/ReservationsTable"
+import { Borrowing } from "../DB/schema/BorrowingsTable"
 
 export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", {
     method: Method.POST,
@@ -74,7 +77,7 @@ export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
     }),
     querySchema: undefined,
     handler: async ({ api, pathsParams, user, params: { range, query } }) => {
-        if(user.user.userType == AuthLevel.Student && ![GetManyType.BookItems, GetManyType.Books, GetManyType.Borrowings, GetManyType.Reservations].includes(pathsParams.objectType as GetManyType)) {
+        if(user.user.userType == AuthLevel.Student && ![GetManyType.BookItems, GetManyType.Authors, GetManyType.Languages, GetManyType.Genres, GetManyType.Books, GetManyType.Borrowings, GetManyType.Reservations].includes(pathsParams.objectType as GetManyType)) {
             return {
                 error: {
                     code: 400,
@@ -106,12 +109,36 @@ export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
 
 export const GetOneAction_Path = createRoute("/crud/:objectType/get-one", {
     method: Method.POST,
-    authLevel: AuthLevel.Librarian,
+    authLevel: AuthLevel.AnyAuthorized,
     bodySchema: z.object({
         id: z.number()
     }),
     querySchema: undefined,
-    handler: async ({ api, pathsParams, params: { id } }) => {
+    handler: async ({ api, pathsParams, user, params: { id } }) => {
+        if(user.user.userType == AuthLevel.Student && ![GetOneType.BookItem, GetOneType.Author, GetOneType.Genre, GetOneType.Book, GetOneType.Borrowing, GetOneType.Reservation].includes(pathsParams.objectType as GetOneType)) {
+            return {
+                error: {
+                    code: 400,
+                    message: "Not authorized",
+                    customCode: "chciałoby się"
+                }
+            }
+        }
+
+        if([GetOneType.Reservation, GetOneType.Borrowing].includes(pathsParams.objectType as GetOneType)) {
+            const item = await api.getOne<GetOneType.Reservation>(GetOneType.Reservation, id)
+            
+            if(item.error == null || (item.data as Reservation | Borrowing).studentId != user.user.id) {
+                return {
+                    error: {
+                        code: 400,
+                        message: "Not authorized",
+                        customCode: "chciałoby się"
+                    }
+                }
+            } 
+        }
+
         return {
             data: api.getOne(pathsParams.objectType as any, id)
         }

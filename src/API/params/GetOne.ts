@@ -8,4 +8,5 @@ export enum GetOneType {
     Reservation = "Reservation",
     Borrowing = "Borrowing",
     Report = "Report",
+    Class = "Class",
 }
