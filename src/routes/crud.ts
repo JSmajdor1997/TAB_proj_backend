@@ -15,6 +15,7 @@ import createRoute from "./createRoute/createRoute"
 import { GetOneType } from "../API/params/GetOne"
 import { Reservation } from "../DB/schema/ReservationsTable"
 import { Borrowing } from "../DB/schema/BorrowingsTable"
+import LogLevel from "../Logger/LogLevel"
 
 export const CreateOneAction_Path = createRoute("/crud/:objectType/create-one", {
     method: Method.POST,
@@ -76,7 +77,7 @@ export const GetManyAction_Path = createRoute("/crud/:objectType/get-many", {
         query: z.any(),
     }),
     querySchema: undefined,
-    handler: async ({ api, pathsParams, user, params: { range, query } }) => {
+    handler: async ({ api, pathsParams, user, params: { range, query } }) => {      
         if(user.user.userType == AuthLevel.Student && ![GetManyType.BookItems, GetManyType.Authors, GetManyType.Languages, GetManyType.Genres, GetManyType.Books, GetManyType.Borrowings, GetManyType.Reservations].includes(pathsParams.objectType as GetManyType)) {
             return {
                 error: {
@@ -114,11 +115,21 @@ export const GetOneAction_Path = createRoute("/crud/:objectType/get-one", {
         id: z.number()
     }),
     querySchema: undefined,
-    handler: async ({ api, pathsParams, user, params: { id } }) => {
+    handler: async ({ api, pathsParams, user, logger, params: { id } }) => {
         if(user.user.userType == AuthLevel.Student && [GetOneType.Reservation, GetOneType.Borrowing].includes(pathsParams.objectType as GetOneType)) {
             const item = await api.getOne(pathsParams.objectType as GetOneType, id)
-                
-            if(item.error == null || (item.data as Reservation | Borrowing).studentId != user.user.id) {
+
+            if(item == null) {
+                return {
+                    error: {
+                        code: 400,
+                        message: "Invalid id provided",
+                        customCode: "Nie ma takiego borrowinga / reservation"
+                    }
+                }
+            }
+
+            if((item.data as Reservation | Borrowing).studentId != user.user.id) {
                 return {
                     error: {
                         code: 400,
