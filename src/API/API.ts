@@ -563,7 +563,7 @@ export default class API {
                     description: GenresTable.description
                 })
                 .from(GenresTable)
-                .innerJoin(AuthorsBooksTable, eq(GenresTable.id, BooksGenresTable.genreId));
+                .innerJoin(BooksGenresTable, eq(GenresTable.id, BooksGenresTable.genreId));
             
                 // Filter by bookId if provided
                 if (typeof q.bookId === "number") {
@@ -700,7 +700,7 @@ export default class API {
 
                 // Base query selecting distinct languages from LanguagesTable
                 sqlQuery = this.db
-                    .select({
+                    .selectDistinct({
                         id: LanguagesTable.id,
                         code: LanguagesTable.code,
                         name: LanguagesTable.name,

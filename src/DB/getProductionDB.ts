@@ -11,6 +11,7 @@ export default async function getProductionDB() {
         user: env.DATABASE_USER_NAME,
         password: env.DATABASE_USER_PASSWORD,
         database: env.DATABASE_NAME,
+        ssl: true
     })
 
     return drizzle(handle)

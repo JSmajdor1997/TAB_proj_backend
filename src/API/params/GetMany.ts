@@ -12,7 +12,7 @@ export enum GetManyType {
     Reservations = "Reservations",
     Students = "Students",
     Reports = "Reports",
-    Genres = "Reports",
+    Genres = "Genres",
     Classes = "Classes",
 }
 
