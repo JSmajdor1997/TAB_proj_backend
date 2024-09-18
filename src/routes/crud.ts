@@ -115,20 +115,8 @@ export const GetOneAction_Path = createRoute("/crud/:objectType/get-one", {
     }),
     querySchema: undefined,
     handler: async ({ api, pathsParams, user, params: { id } }) => {
-        if(user.user.userType == AuthLevel.Student && ![GetOneType.BookItem, GetOneType.Author, GetOneType.Genre, GetOneType.Book, GetOneType.Borrowing, GetOneType.Reservation].includes(pathsParams.objectType as GetOneType)) {
-            return {
-                error: {
-                    code: 400,
-                    message: "Not authorized",
-                    customCode: "chciałoby się"
-                }
-            }
-        }
-
-        if([GetOneType.Reservation, GetOneType.Borrowing].includes(pathsParams.objectType as GetOneType)) {
-            const item = await api.getOne<GetOneType.Reservation>(GetOneType.Reservation, id)
-            
-            if(item.error == null || (item.data as Reservation | Borrowing).studentId != user.user.id) {
+        if(user.user.userType == AuthLevel.Student) {
+            if(![GetOneType.BookItem, GetOneType.Author, GetOneType.Genre, GetOneType.Book, GetOneType.Borrowing, GetOneType.Reservation].includes(pathsParams.objectType as GetOneType)) {
                 return {
                     error: {
                         code: 400,
@@ -136,7 +124,21 @@ export const GetOneAction_Path = createRoute("/crud/:objectType/get-one", {
                         customCode: "chciałoby się"
                     }
                 }
-            } 
+            }
+    
+            if([GetOneType.Reservation, GetOneType.Borrowing].includes(pathsParams.objectType as GetOneType)) {
+                const item = await api.getOne<GetOneType.Reservation>(GetOneType.Reservation, id)
+                
+                if(item.error == null || (item.data as Reservation | Borrowing).studentId != user.user.id) {
+                    return {
+                        error: {
+                            code: 400,
+                            message: "Not authorized",
+                            customCode: "chciałoby się"
+                        }
+                    }
+                } 
+            }
         }
 
         return {
