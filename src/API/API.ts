@@ -41,14 +41,13 @@ export default class API {
         password: hashedPassword
     }))
 
-    private static getDefaultStudent = (): Promise<Omit<Student, "id">> => API.hashPassword("zaq1@WSX").then(hashedPassword => ({
+    private static getDefaultStudent = (): Promise<Omit<Student, "id" | "classId">> => API.hashPassword("zaq1@WSX").then(hashedPassword => ({
         name: "admin",
         surname: "admin",
         email: "admin@admin.pl",
         password: hashedPassword,
         birthDate: new Date(),
         addedDate: new Date(),
-        classId: 1
     }))
 
     private static takeOneOrNull<T>(values: T[]): T | null {
@@ -63,44 +62,53 @@ export default class API {
         return bcrypt.hash(password, bcrypt.genSaltSync(10))
     }
 
+    private async initializeWithDefaultObjects() {
+        const defaultLibrarian = await API.getDefaultLibrarian()
+        const existingDefaultLibrarian = await this.getLibrarian({email: defaultLibrarian.email})
+        if(existingDefaultLibrarian == null) {
+            this.logger.log(LogLevel.Info, "default librarian not found - creating")
+
+            await this.db.insert(LibrariansTable).values(defaultLibrarian)
+            this.logger.log(LogLevel.Success, "initialized")
+        } else {
+            this.logger.log(LogLevel.Success, "default librarian found")
+        }
+
+        const defaultStudent = await API.getDefaultStudent()
+        const existingDefaultStudent = await this.getStudent({email: defaultStudent.email})
+        if(existingDefaultStudent == null) {
+            this.logger.log(LogLevel.Info, "default student not found - creating")
+
+            let c: Class
+
+            const allClasses = await this.getMany(GetManyType.Classes, {}, [0, 5]) as {data: Array<Class>}
+            if(allClasses.data.length > 0) {
+                c = allClasses.data[0]
+            }  else {
+                const insertedClass = await this.db.insert(ClassesTable).values({
+                    name: "Klasa pokazowa",
+                    startingDate: new Date()
+                }).returning()
+
+                c = insertedClass[0]
+            }
+
+            await this.db.insert(StudentsTable).values({
+                ...defaultStudent,
+                classId: c.id
+            })
+        } else {
+            this.logger.log(LogLevel.Success, "default student found")
+        }
+
+        this.logger.log(LogLevel.Success, "initialized")
+    }
+
     constructor(
         private readonly db: DB,
         private readonly logger: Logger
     ) {
-        //create defaults users if do not exist
-
-        API.getDefaultLibrarian().then(defaultLibrarian => {
-            this.getLibrarian({ email: defaultLibrarian.email }).then(async existing => {
-                if (existing == null) {
-                    logger.log(LogLevel.Info, "default librarian not found - creating")
-                    await db.insert(LibrariansTable).values(defaultLibrarian)
-                } else {
-                    logger.log(LogLevel.Success, "default librarian found")
-                }
-
-                logger.log(LogLevel.Success, "initialized")
-            })
-        })
-
-        API.getDefaultStudent().then(defaultStudent => {
-            this.getStudent({ email: defaultStudent.email }).then(async existing => {
-                if (existing == null) {
-                    logger.log(LogLevel.Info, "default student not found - creating")
-                    await db.insert(StudentsTable).values(defaultStudent)
-                } else {
-                    logger.log(LogLevel.Success, "default student found")
-                }
-
-                logger.log(LogLevel.Success, "initialized")
-            })
-        })
-    }
-
-    readonly requestReportCreation = async () => { throw "ToDo" }
-    readonly downloadReport = async () => { throw "ToDo" }
-    readonly getAllGeneratedReports = async () => { throw "ToDo" }
-    readonly resetPassword = async () => {
-        throw "ToDo"
+        this.initializeWithDefaultObjects()
     }
 
     readonly getStudent = async ({ email, id, password }: { email?: string, id?: number, password?: string }): Promise<Student | null> => {
@@ -153,11 +161,6 @@ export default class API {
 
                 return librarian
             })
-    }
-
-    readonly setPassword = async (librarian: Librarian, newPassword: string): Promise<void> => {
-        this.logger.log(LogLevel.Warning, "changing password not implemented")
-        throw new Error("ToDo!")
     }
 
     readonly returnBookItem = async (bookItemId: number, fee: number): Promise<APIResponse<{}>> => {
