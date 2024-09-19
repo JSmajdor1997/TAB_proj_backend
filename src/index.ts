@@ -5,12 +5,11 @@ import getProductionDB from "./DB/getProductionDB";
 import getEnv from "./getEnv";
 import Logger from "./Logger/Logger";
 import LogLevel from "./Logger/LogLevel";
-import DB from "./DB/DB";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import API from "./API/API";
 import { Method } from "./routes/createRoute/Method";
-import { Reports_Download_Route, Reports_GetAllGenerated_Route, Reports_RequestCreation_Route } from "./routes/reports";
+import { Reports_Get_Most_Reading_Student_Route, Reports_Get_Most_Popular_Genres_Route } from "./routes/reports";
 import { User_ResetPassword_Route, User_ChangePassword_Route, User_Login_Route, User_Logout_Route, User_CurrentUser_Route } from "./routes/user";
 import StatusCode from "./utils/StatusCode";
 import fs from "fs"
@@ -19,6 +18,7 @@ import { Books_CancelReservation_Route, Books_Lend_Route, Books_Reserve_Route, B
 import { CreateOneAction_Path, DeleteOneAction_Path, UpdateOneAction_Path, GetManyAction_Path, GetOneAction_Path } from "./routes/crud";
 import JSONHelpers from "./utils/JSONHelpers";
 import { faker } from "@faker-js/faker";
+import DB from "./DB/DB";
 
 dotenv.config();
 
@@ -68,9 +68,8 @@ async function main() {
         GetManyAction_Path,
         GetOneAction_Path,
 
-        Reports_Download_Route,
-        Reports_GetAllGenerated_Route,
-        Reports_RequestCreation_Route,
+        Reports_Get_Most_Popular_Genres_Route,
+        Reports_Get_Most_Reading_Student_Route,
 
         User_ResetPassword_Route,
         User_ChangePassword_Route,

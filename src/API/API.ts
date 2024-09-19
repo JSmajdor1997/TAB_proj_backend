@@ -1,6 +1,5 @@
 import bcrypt from "bcrypt";
-import { SQL, and, eq, isNotNull, isNull, not, sql } from "drizzle-orm";
-import DB from "../DB/DB";
+import { SQL, and, between, eq, isNotNull, isNull, not, sql } from "drizzle-orm";
 import { AuthorsBooksTable } from "../DB/schema/AuthorsBooksTable";
 import { Author, AuthorsTable } from "../DB/schema/AuthorsTable";
 import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
@@ -23,6 +22,7 @@ import { GetManyQuery, GetManyType } from "./params/GetMany";
 import { GetOneType } from "./params/GetOne";
 import { UpdateOneType, UpdateQuery } from "./params/UpdateOne";
 import { Class, ClassesTable } from "../DB/schema/ClassesTable";
+import DB from "../DB/DB";
 
 export type APIResponse<DataType> = {
     data: DataType
@@ -64,8 +64,8 @@ export default class API {
 
     private async initializeWithDefaultObjects() {
         const defaultLibrarian = await API.getDefaultLibrarian()
-        const existingDefaultLibrarian = await this.getLibrarian({email: defaultLibrarian.email})
-        if(existingDefaultLibrarian == null) {
+        const existingDefaultLibrarian = await this.getLibrarian({ email: defaultLibrarian.email })
+        if (existingDefaultLibrarian == null) {
             this.logger.log(LogLevel.Info, "default librarian not found - creating")
 
             await this.db.insert(LibrariansTable).values(defaultLibrarian)
@@ -75,16 +75,16 @@ export default class API {
         }
 
         const defaultStudent = await API.getDefaultStudent()
-        const existingDefaultStudent = await this.getStudent({email: defaultStudent.email})
-        if(existingDefaultStudent == null) {
+        const existingDefaultStudent = await this.getStudent({ email: defaultStudent.email })
+        if (existingDefaultStudent == null) {
             this.logger.log(LogLevel.Info, "default student not found - creating")
 
             let c: Class
 
-            const allClasses = await this.getMany(GetManyType.Classes, {}, [0, 5]) as {data: Array<Class>}
-            if(allClasses.data.length > 0) {
+            const allClasses = await this.getMany(GetManyType.Classes, {}, [0, 5]) as { data: Array<Class> }
+            if (allClasses.data.length > 0) {
                 c = allClasses.data[0]
-            }  else {
+            } else {
                 const insertedClass = await this.db.insert(ClassesTable).values({
                     name: "Klasa pokazowa",
                     startingDate: new Date()
@@ -516,7 +516,7 @@ export default class API {
         switch (type) {
             case GetManyType.Authors: {
                 const q = query as GetManyQuery<GetManyType.Authors>;
-            
+
                 // Selecting only the columns from AuthorsTable explicitly
                 sqlQuery = this.db.select({
                     id: AuthorsTable.id,
@@ -524,32 +524,32 @@ export default class API {
                     surname: AuthorsTable.surname,
                     birthDate: AuthorsTable.birthDate
                 })
-                .from(AuthorsTable)
-                .innerJoin(AuthorsBooksTable, eq(AuthorsTable.id, AuthorsBooksTable.authorId));  // Joining authors and authors_books table
-            
+                    .from(AuthorsTable)
+                    .innerJoin(AuthorsBooksTable, eq(AuthorsTable.id, AuthorsBooksTable.authorId));  // Joining authors and authors_books table
+
                 const conditions = [];
-            
+
                 // Filter by bookId if provided
                 if (typeof q.bookId === "number") {
                     conditions.push(eq(AuthorsBooksTable.bookId, q.bookId));  // Ensuring only authors of the provided bookId are returned
                 }
-            
+
                 // Filter by phrase if provided (search by name/surname)
                 if (typeof q.phrase === "string") {
                     conditions.push(sql`
                         (${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) ILIKE ${q.phrase.toLocaleLowerCase()}
                     `);
                 }
-            
+
                 // Apply conditions if any exist
                 if (conditions.length > 0) {
                     sqlQuery = sqlQuery.where(and(...conditions));
                 }
-            
+
                 break;
             }
             case GetManyType.Reports: {
-                sqlQuery = this.db.select({id: ReportsTable.id, startDate: ReportsTable.startDate, endDate: ReportsTable.endDate}).from(ReportsTable);
+                sqlQuery = this.db.select({ id: ReportsTable.id, startDate: ReportsTable.startDate, endDate: ReportsTable.endDate }).from(ReportsTable);
 
                 break;
             }
@@ -560,21 +560,21 @@ export default class API {
             }
             case GetManyType.Genres: {
                 const q = query as GetManyQuery<GetManyType.Authors>;
-            
+
                 // Selecting only the columns from AuthorsTable explicitly
                 sqlQuery = this.db.select({
                     id: GenresTable.id,
                     name: GenresTable.name,
                     description: GenresTable.description
                 })
-                .from(GenresTable)
-                .innerJoin(BooksGenresTable, eq(GenresTable.id, BooksGenresTable.genreId));
-            
+                    .from(GenresTable)
+                    .innerJoin(BooksGenresTable, eq(GenresTable.id, BooksGenresTable.genreId));
+
                 // Filter by bookId if provided
                 if (typeof q.bookId === "number") {
                     sqlQuery = sqlQuery.where(eq(BooksGenresTable.bookId, q.bookId))
                 }
-            
+
                 break;
             }
             case GetManyType.BookItems: {
@@ -683,7 +683,7 @@ export default class API {
                 }
 
                 if (typeof q.returned == "boolean") {
-                    if(q.returned) {
+                    if (q.returned) {
                         conditions.push(isNotNull(BorrowingsTable.returnDate));
                     } else {
                         conditions.push(isNull(BorrowingsTable.returnDate));
@@ -693,7 +693,7 @@ export default class API {
                 if (conditions.length > 0) {
                     sqlQuery = sqlQuery.where(and(...conditions));
                 }
-            
+
                 break;
             }
             case GetManyType.Fees: {
@@ -713,13 +713,13 @@ export default class API {
                     .from(LanguagesTable)
                     // Join with BookItemsTable to filter by bookId
                     .innerJoin(BookItemsTable, eq(BookItemsTable.languageId, LanguagesTable.id));
-            
+
                 // Filter by bookId if provided
                 if (typeof q.bookId === "number") {
                     sqlQuery = sqlQuery
                         .where(eq(BookItemsTable.bookId, q.bookId))
                 }
-            
+
                 break;
             }
             case GetManyType.Librarians: {
@@ -765,12 +765,12 @@ export default class API {
 
                 if (q.phrase) {
                     const searchPhrase = `%${q.phrase}%`; // Add wildcards to match anywhere in the string
-        conditions.push(sql`
+                    conditions.push(sql`
             (${StudentsTable.name} || ' ' || ${StudentsTable.surname}) ILIKE ${searchPhrase}
         `);
                 }
 
-                if(typeof q.classId == "number") {
+                if (typeof q.classId == "number") {
                     conditions.push(eq(ClassesTable.id, q.classId))
                 }
 
@@ -797,5 +797,36 @@ export default class API {
                 totalAmount
             }
         }
+    }
+
+    async getMostPopularGenresInDateRange(dateRange: [Date, Date], classId: number) {
+        return await this.db.select({
+            genre: GenresTable,
+            amount: sql`count(${GenresTable.id})`.mapWith(Number)
+        })
+            .from(BorrowingsTable)
+            .innerJoin(BookItemsTable, eq(BorrowingsTable.bookItemEan, BookItemsTable.ean))
+            .innerJoin(BooksGenresTable, eq(BooksGenresTable.bookId, BookItemsTable.bookId))
+            .innerJoin(GenresTable, eq(BooksGenresTable.genreId, GenresTable.id))
+            .innerJoin(StudentsTable, eq(StudentsTable.id, BorrowingsTable.studentId))
+            .where(and(
+                eq(StudentsTable.classId, classId),
+                between(BorrowingsTable.borrowingDate, dateRange[0], dateRange[1])
+            ))
+            .groupBy(GenresTable.id)
+    }
+
+    async getMostReadingStudent(dateRange: [Date, Date], classId: number) {
+        return await this.db.select({
+            student: StudentsTable,
+            amount: sql`count(${StudentsTable.id})`.mapWith(Number)
+        })
+            .from(BorrowingsTable)
+            .innerJoin(StudentsTable, eq(StudentsTable.id, BorrowingsTable.studentId))
+            .where(and(
+                eq(StudentsTable.classId, classId),
+                between(BorrowingsTable.borrowingDate, dateRange[0], dateRange[1])
+            ))
+            .groupBy(StudentsTable.id)
     }
 }
