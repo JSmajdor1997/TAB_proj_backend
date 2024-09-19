@@ -536,7 +536,9 @@ export default class API {
             
                 // Filter by phrase if provided (search by name/surname)
                 if (typeof q.phrase === "string") {
-                    conditions.push(sql`to_tsvector('english', ${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) @@ to_tsquery('english', ${q.phrase})`);
+                    conditions.push(sql`
+                        (${AuthorsTable.name} || ' ' || ${AuthorsTable.surname}) ILIKE ${q.phrase.toLocaleLowerCase()}
+                    `);
                 }
             
                 // Apply conditions if any exist
@@ -725,9 +727,9 @@ export default class API {
                 sqlQuery = this.db.select().from(LibrariansTable)
 
                 if (q.phrase) {
-                    sqlQuery = sqlQuery.where(
-                        sql`to_tsvector('english', ${LibrariansTable.name} || ' ' || ${LibrariansTable.surname}) @@ to_tsquery('english', ${q.phrase})`
-                    );
+                    sqlQuery = sqlQuery.where(sql`
+                        (${LibrariansTable.name} || ' ' || ${LibrariansTable.surname}) ILIKE ${q.phrase.toLocaleLowerCase()}
+                    `);
                 }
                 break;
             }
@@ -756,12 +758,24 @@ export default class API {
             }
             case GetManyType.Students: {
                 const q = query as GetManyQuery<GetManyType.Students>;
-                sqlQuery = this.db.select().from(StudentsTable)
+                sqlQuery = this.db.selectDistinct().from(StudentsTable)
+                    .innerJoin(ClassesTable, eq(ClassesTable.id, StudentsTable.classId))
+
+                const conditions = []
 
                 if (q.phrase) {
-                    sqlQuery = sqlQuery.where(
-                        sql`to_tsvector('english', ${StudentsTable.name} || ' ' || ${StudentsTable.surname}) @@ to_tsquery('english', ${q.phrase})`
-                    );
+                    const searchPhrase = `%${q.phrase}%`; // Add wildcards to match anywhere in the string
+        conditions.push(sql`
+            (${StudentsTable.name} || ' ' || ${StudentsTable.surname}) ILIKE ${searchPhrase}
+        `);
+                }
+
+                if(typeof q.classId == "number") {
+                    conditions.push(eq(ClassesTable.id, q.classId))
+                }
+
+                if (conditions.length > 0) {
+                    sqlQuery = sqlQuery.where(and(...conditions));
                 }
                 break;
             }
