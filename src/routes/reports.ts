@@ -3,7 +3,7 @@ import { AuthLevel } from "./createRoute/AuthLevel"
 import { Method } from "./createRoute/Method"
 import createRoute from "./createRoute/createRoute"
 
-export const Reports_Download_Route = createRoute("/reports/get-most-popular-genres", {
+export const Reports_Get_Most_Popular_Genres_Route = createRoute("/reports/get-most-popular-genres", {
     method: Method.POST,
     authLevel: AuthLevel.Librarian,
     bodySchema: z.object({
@@ -18,22 +18,17 @@ export const Reports_Download_Route = createRoute("/reports/get-most-popular-gen
     },
 })
 
-export const Reports_GetAllGenerated_Route = createRoute("/reports/get-all-generated", {
+export const Reports_Get_Most_Reading_Student_Route = createRoute("/reports/get-most-reading-student", {
     method: Method.POST,
     authLevel: AuthLevel.Librarian,
-    bodySchema: undefined,
+    bodySchema: z.object({
+        dateRange: z.tuple([z.date(), z.date()]),
+        classId: z.number().int().positive()
+    }),
     querySchema: undefined,
     async handler({ params, api, user }) {
-        throw new Error("ToDo")
-    },
-})
-
-export const Reports_RequestCreation_Route = createRoute("/reports/request-creation", {
-    method: Method.POST,
-    authLevel: AuthLevel.Librarian,
-    bodySchema: undefined,
-    querySchema: undefined,
-    async handler({ params, api, user }) {
-        throw new Error("ToDo")
+        return {
+            data: await api.getMostReadingStudent(params.dateRange, params.classId)
+        }
     },
 })

@@ -1,6 +1,5 @@
 import bcrypt from "bcrypt";
 import { SQL, and, between, eq, isNotNull, isNull, not, sql } from "drizzle-orm";
-import DB from "../DB/DB";
 import { AuthorsBooksTable } from "../DB/schema/AuthorsBooksTable";
 import { Author, AuthorsTable } from "../DB/schema/AuthorsTable";
 import { BookItem, BookItemsTable } from "../DB/schema/BookItemsTable";
@@ -23,6 +22,7 @@ import { GetManyQuery, GetManyType } from "./params/GetMany";
 import { GetOneType } from "./params/GetOne";
 import { UpdateOneType, UpdateQuery } from "./params/UpdateOne";
 import { Class, ClassesTable } from "../DB/schema/ClassesTable";
+import DB from "../DB/DB";
 
 export type APIResponse<DataType> = {
     data: DataType
@@ -814,5 +814,19 @@ export default class API {
                 between(BorrowingsTable.borrowingDate, dateRange[0], dateRange[1])
             ))
             .groupBy(GenresTable.id)
+    }
+
+    async getMostReadingStudent(dateRange: [Date, Date], classId: number) {
+        return await this.db.select({
+            student: StudentsTable,
+            amount: sql`count(${StudentsTable.id})`.mapWith(Number)
+        })
+            .from(BorrowingsTable)
+            .innerJoin(StudentsTable, eq(StudentsTable.id, BorrowingsTable.studentId))
+            .where(and(
+                eq(StudentsTable.classId, classId),
+                between(BorrowingsTable.borrowingDate, dateRange[0], dateRange[1])
+            ))
+            .groupBy(StudentsTable.id)
     }
 }
