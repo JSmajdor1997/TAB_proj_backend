@@ -6,4 +6,5 @@ export enum DeleteOneType {
     Language = "Language",
     Location = "Location",
     Fees = "Fees",
+    Student = "Student",
 }

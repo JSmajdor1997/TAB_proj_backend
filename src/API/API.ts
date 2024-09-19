@@ -332,6 +332,10 @@ export default class API {
                 await this.db.delete(LocationsTable).where(eq(LocationsTable.id, id))
                 break;
             }
+            case DeleteOneType.Student: {
+                await this.db.delete(StudentsTable).where(eq(LocationsTable.id, id))
+                break;
+            }
             default: {
                 throw new Error("Invalid type");
             }
