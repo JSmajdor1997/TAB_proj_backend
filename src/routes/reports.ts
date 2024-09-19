@@ -1,14 +1,20 @@
+import { z } from "zod"
 import { AuthLevel } from "./createRoute/AuthLevel"
 import { Method } from "./createRoute/Method"
 import createRoute from "./createRoute/createRoute"
 
-export const Reports_Download_Route = createRoute("/reports/download", {
+export const Reports_Download_Route = createRoute("/reports/get-most-popular-genres", {
     method: Method.POST,
     authLevel: AuthLevel.Librarian,
-    bodySchema: undefined,
+    bodySchema: z.object({
+        dateRange: z.tuple([z.date(), z.date()]),
+        classId: z.number().int().positive()
+    }),
     querySchema: undefined,
     async handler({ params, api, user }) {
-        throw new Error("ToDo")
+        return {
+            data: await api.getMostPopularGenresInDateRange(params.dateRange, params.classId)
+        }
     },
 })
 
